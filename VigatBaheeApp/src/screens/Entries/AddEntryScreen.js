@@ -4,6 +4,7 @@ import {
     Alert, ActivityIndicator, Platform, Switch,
 } from 'react-native';
 import HindiInput from '../../components/HindiInput';
+import OCRPicker from '../../components/OCRPicker';
 import { baheeDetailsAPI, baheeEntriesAPI } from '../../api/apiClient';
 import { calculateTithi } from '../../utils/tithiCalculator';
 import { COLORS, FONT_SIZES, SPACING, BORDER_RADIUS, BAHEE_TYPES } from '../../utils/theme';
@@ -60,7 +61,13 @@ const AddEntryScreen = ({ navigation, route }) => {
 
         setSaveHeaderLoading(true);
         try {
-            await baheeDetailsAPI.create({ baheeType: selectedType, name: headerName, date, tithi });
+            await baheeDetailsAPI.create({
+                baheeType: selectedType,
+                baheeTypeName: BAHEE_TYPES.find(t => t.key === selectedType)?.subLabel || selectedType,
+                name: headerName,
+                date,
+                tithi,
+            });
             setHeaderExists(true);
             Alert.alert('सफल', `"${headerName}" विगत सहेजी गई!`);
         } catch (err) {
@@ -82,6 +89,7 @@ const AddEntryScreen = ({ navigation, route }) => {
         try {
             await baheeEntriesAPI.create({
                 baheeType: selectedType,
+                baheeTypeName: BAHEE_TYPES.find(t => t.key === selectedType)?.subLabel || selectedType,
                 headerName: headerName.trim(),
                 sno, caste, name: name.trim(), fatherName, villageName,
                 income: incomeVal, amount: amountVal,
@@ -192,6 +200,14 @@ const AddEntryScreen = ({ navigation, route }) => {
             {/* ─── SECTION 2: GUEST ENTRY ─── */}
             <View style={styles.section}>
                 <Text style={styles.sectionTitle}>2. प्रविष्टि जोड़ें (Guest Entry)</Text>
+
+                <OCRPicker
+                    onTextExtracted={(data) => {
+                        if (data.name) setName(data.name);
+                        if (data.villageName) setVillageName(data.villageName);
+                        if (data.amount) setAmount(data.amount);
+                    }}
+                />
 
                 <HindiInput label="क्रमांक (S.No.)" value={sno} onChangeText={setSno} placeholder="1, 2, 3..." defaultTransliterate={false} keyboardType="numeric" />
                 <HindiInput label="जाति (Caste)" value={caste} onChangeText={setCaste} placeholder="जाति दर्ज करें" />

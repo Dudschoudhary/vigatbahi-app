@@ -1,30 +1,29 @@
 // App-wide color palette, spacing, and typography constants
 
 export const COLORS = {
-    primary: '#3B82F6',       // Blue
-    primaryDark: '#1D4ED8',
-    primaryLight: '#93C5FD',
-    secondary: '#10B981',     // Green
-    secondaryDark: '#065F46',
-    accent: '#EF4444',        // Red — for Hindi headings
-    warning: '#F59E0B',
-    background: '#F9FAFB',
-    card: '#FFFFFF',
-    border: '#E5E7EB',
-    text: '#111827',
-    textLight: '#6B7280',
-    textMuted: '#9CA3AF',
-    white: '#FFFFFF',
-    black: '#000000',
-    success: '#10B981',
-    error: '#EF4444',
+    // Brand Tailwind
+    primary: '#2563EB', // blue-600
+    secondary: '#16A34A', // green-600
+    accent: '#DB2777', // pink-600
 
-    // Bahee type gradients (start, end)
-    vivah: ['#667EEA', '#764BA2'],
-    muklawa: ['#F093FB', '#F5576C'],
-    odhawani: ['#4FACFE', '#00F2FE'],
-    mahera: ['#43E97B', '#38F9D7'],
-    anya: ['#FA709A', '#FEE140'],
+    // Tailwind Gradients
+    blueGradient: ['#3B82F6', '#2563EB'], // from-blue-500 to-blue-600
+    greenGradient: ['#22C55E', '#16A34A'], // from-green-500 to-green-600
+    pinkGradient: ['#EC4899', '#DB2777'], // from-pink-500 to-pink-600
+    bgGradient: ['#EFF6FF', '#FFFFFF', '#F0FDF4'], // blue-50, white, green-50
+
+    // Tailwind Grays
+    text: '#111827', // gray-900
+    textLight: '#374151', // gray-700
+    textMuted: '#4B5563', // gray-600
+    border: '#E5E7EB', // gray-200
+    background: '#F9FAFB', // gray-50
+    white: '#FFFFFF',
+
+    // Status
+    success: '#22C55E', // green-500
+    error: '#EF4444',   // red-500
+    warning: '#F59E0B', // amber-500
 };
 
 export const BAHEE_TYPES = [
@@ -33,7 +32,7 @@ export const BAHEE_TYPES = [
         label: 'विवाह',
         subLabel: 'विवाह की विगत',
         emoji: '💒',
-        gradient: COLORS.vivah,
+        gradient: COLORS.blueGradient,
         description: 'शादी-विवाह में प्राप्त उपहार',
     },
     {
@@ -41,32 +40,32 @@ export const BAHEE_TYPES = [
         label: 'मुकलावा',
         subLabel: 'मुकलावा की विगत',
         emoji: '🎊',
-        gradient: COLORS.muklawa,
-        description: 'मुकलावे में प्राप्त उपहार',
+        gradient: COLORS.blueGradient,
+        description: 'मुकलावा दस्तूर के रिकॉर्ड',
     },
     {
         key: 'odhawani',
         label: 'ओढावणी',
         subLabel: 'ओढावणी की विगत',
         emoji: '👘',
-        gradient: COLORS.odhawani,
-        description: 'कपड़े/साड़ी भेंट की विगत',
+        gradient: COLORS.blueGradient,
+        description: 'पहनावा और भेंट',
     },
     {
         key: 'mahera',
         label: 'माहेरा',
         subLabel: 'माहेरा की विगत',
         emoji: '🎁',
-        gradient: COLORS.mahera,
-        description: 'माहेरे में दिए गए उपहार',
+        gradient: COLORS.blueGradient,
+        description: 'मामा पक्ष से प्राप्त नेग',
     },
     {
         key: 'anya',
         label: 'अन्य',
         subLabel: 'अन्य विगत',
         emoji: '📝',
-        gradient: COLORS.anya,
-        description: 'अन्य अवसरों की विगत',
+        gradient: COLORS.blueGradient,
+        description: 'अन्य समारोह रिकॉर्ड',
     },
 ];
 
@@ -79,6 +78,12 @@ export const FONT_SIZES = {
     xl: 22,
     '2xl': 26,
     '3xl': 32,
+};
+
+export const FONTS = {
+    regular: 'Hind-Regular',
+    bold: 'Hind-Bold',
+    heading: 'YatraOne-Regular',
 };
 
 export const SPACING = {

@@ -4,7 +4,7 @@ import { createStackNavigator } from '@react-navigation/stack';
 import { createDrawerNavigator } from '@react-navigation/drawer';
 import { useAuth } from '../context/AuthContext';
 import LoadingSpinner from '../components/LoadingSpinner';
-import { COLORS } from '../utils/theme';
+import { COLORS, FONTS } from '../utils/theme';
 
 // Auth Screens
 import LandingScreen from '../screens/Auth/LandingScreen';
@@ -48,9 +48,10 @@ const AuthStack = () => (
 const AppStack = () => (
     <Stack.Navigator
         screenOptions={{
-            headerStyle: { backgroundColor: COLORS.primary },
-            headerTintColor: COLORS.white,
-            headerTitleStyle: { fontWeight: 'bold' },
+            headerStyle: { backgroundColor: COLORS.white, elevation: 4, shadowOpacity: 0.1 },
+            headerTintColor: COLORS.text,
+            headerTitleStyle: { color: COLORS.error, fontFamily: FONTS.heading, fontSize: 22 },
+            headerTitleAlign: 'center',
         }}>
         <Stack.Screen name="Dashboard" component={DashboardScreen} options={{ headerShown: false }} />
         <Stack.Screen name="AddEntry" component={AddEntryScreen} options={{ title: 'नई विगत जोड़ें' }} />

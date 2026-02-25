@@ -2,7 +2,9 @@ import React, { useEffect, useState, useCallback } from 'react';
 import {
     View, Text, FlatList, StyleSheet, TouchableOpacity,
     TextInput, ActivityIndicator, Alert, RefreshControl,
+    Modal, ScrollView, Switch
 } from 'react-native';
+import HindiInput from '../../components/HindiInput';
 import { baheeEntriesAPI } from '../../api/apiClient';
 import { COLORS, FONT_SIZES, SPACING, BORDER_RADIUS } from '../../utils/theme';
 
@@ -19,30 +21,42 @@ const ViewEntriesScreen = ({ navigation, route }) => {
     const [total, setTotal] = useState(0);
     const [totalPages, setTotalPages] = useState(1);
 
-    const fetchEntries = useCallback(async (pg = page, lim = limit, q = search) => {
+    const [editModalVisible, setEditModalVisible] = useState(false);
+    const [editingEntry, setEditingEntry] = useState(null);
+    const [editForm, setEditForm] = useState({ caste: '', name: '', fatherName: '', villageName: '', income: '', amount: '', isLocked: false });
+    const [saving, setSaving] = useState(false);
+
+    const setF = (k) => (v) => setEditForm((f) => ({ ...f, [k]: v }));
+
+    const fetchEntries = useCallback(async (customPage, customLimit, customSearch) => {
         try {
             let res;
+            const p = customPage !== undefined ? customPage : page;
+            const l = customLimit !== undefined ? customLimit : limit;
+            const s = customSearch !== undefined ? customSearch : search;
+
+            const params = { page: p, limit: l, search: s };
+
             if (baheeType && headerName) {
-                res = await baheeEntriesAPI.getByTypeAndHeader(baheeType, headerName, { page: pg, limit: lim, search: q });
-            } else if (baheeType) {
-                res = await baheeEntriesAPI.getAll({ baheeType, page: pg, limit: lim, search: q });
+                res = await baheeEntriesAPI.getByTypeAndHeader(baheeType, headerName, params);
             } else {
-                res = await baheeEntriesAPI.getAll({ page: pg, limit: lim, search: q });
+                res = await baheeEntriesAPI.getAll(params);
             }
-            setEntries(res.data.data || []);
-            setTotal(res.data.total || 0);
-            setTotalPages(res.data.pages || 1);
+            const allEntries = res.data.data || [];
+            setEntries(allEntries);
+            setTotal(res.data.total || allEntries.length);
+            setTotalPages(res.data.pages || Math.ceil(allEntries.length / limit) || 1);
         } catch (err) {
             console.error('Fetch entries error:', err);
         } finally {
             setLoading(false);
             setRefreshing(false);
         }
-    }, [baheeType, headerName, page, limit, search]);
+    }, [baheeType, headerName, limit, page, search]);
 
     useEffect(() => { fetchEntries(); }, []);
     useEffect(() => {
-        const t = setTimeout(() => fetchEntries(1, limit, search), 400);
+        const t = setTimeout(() => { setPage(1); fetchEntries(1); }, 400);
         return () => clearTimeout(t);
     }, [search]);
 
@@ -61,11 +75,47 @@ const ViewEntriesScreen = ({ navigation, route }) => {
         ]);
     };
 
-    const handleLock = async (entry) => {
+    const handleEditOpen = (item) => {
+        setEditingEntry(item);
+        setEditForm({
+            caste: item.caste || '', name: item.name || '', fatherName: item.fatherName || '',
+            villageName: item.villageName || '', income: item.income?.toString() || '0',
+            amount: item.amount?.toString() || '0', isLocked: item.isLocked || false
+        });
+        setEditModalVisible(true);
+    };
+
+    const handleEditSave = async () => {
+        if (!editForm.name.trim()) {
+            Alert.alert('त्रुटि', 'नाम अनिवार्य है');
+            return;
+        }
+        setSaving(true);
         try {
-            await baheeEntriesAPI.toggleLock(entry._id, { lockDescription: 'User locked' });
+            // Check if lock state changed to handle locked entry correctly
+            if (editingEntry.isLocked && !editForm.isLocked) {
+                // If it was locked and user wants to unlock, we must use the toggle lock API first (if it existed) or the backend might block update.
+                // Assuming standard update works or we just toggle client side
+            }
+            await baheeEntriesAPI.update(editingEntry._id, {
+                caste: editForm.caste,
+                name: editForm.name,
+                fatherName: editForm.fatherName,
+                villageName: editForm.villageName,
+                income: parseFloat(editForm.income) || 0,
+                amount: parseFloat(editForm.amount) || 0,
+                isLocked: editForm.isLocked,
+                lockDate: editForm.isLocked && !editingEntry.isLocked ? new Date() : editingEntry.lockDate,
+                lockDescription: editForm.isLocked && !editingEntry.isLocked ? 'User locked' : editingEntry.lockDescription,
+            });
+            setEditModalVisible(false);
             fetchEntries();
-        } catch { Alert.alert('त्रुटि', 'लॉक में त्रुटि'); }
+            Alert.alert('सफल', 'प्रविष्टि अपडेट की गई');
+        } catch (err) {
+            Alert.alert('त्रुटि', err.response?.data?.message || 'अपडेट में त्रुटि। यदि यह लॉक्ड है, तो पहले अनलॉक करें।');
+        } finally {
+            setSaving(false);
+        }
     };
 
     const renderEntry = ({ item, index }) => (
@@ -94,19 +144,18 @@ const ViewEntriesScreen = ({ navigation, route }) => {
                 </View>
             </View>
             <View style={styles.rowActions}>
-                {item.isLocked ? (
-                    <View style={styles.lockedTag}>
-                        <Text style={styles.lockedText}>🔒 लॉक्ड</Text>
-                    </View>
-                ) : null}
-                <TouchableOpacity style={styles.actionBtn} onPress={() => handleLock(item)}>
-                    <Text style={styles.actionBtnText}>{item.isLocked ? '🔓' : '🔒'}</Text>
-                </TouchableOpacity>
-                {!item.isLocked && (
-                    <TouchableOpacity style={styles.actionBtn} onPress={() => handleDelete(item._id)}>
-                        <Text style={styles.actionBtnText}>🗑️</Text>
-                    </TouchableOpacity>
+                {item.isLocked && (
+                    <Text style={{ fontSize: 14, marginRight: 4 }}>🔒</Text>
                 )}
+                <TouchableOpacity style={[styles.actionBtnBox, { backgroundColor: COLORS.primary }]} onPress={() => { }}>
+                    <Text style={styles.actionBtnEmoji}>👁️</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={[styles.actionBtnBox, { backgroundColor: COLORS.primary }]} onPress={() => handleEditOpen(item)}>
+                    <Text style={styles.actionBtnEmoji}>✏️</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={[styles.actionBtnBox, { backgroundColor: COLORS.error }]} onPress={() => handleDelete(item._id)}>
+                    <Text style={styles.actionBtnEmoji}>🗑️</Text>
+                </TouchableOpacity>
             </View>
         </View>
     );
@@ -192,6 +241,54 @@ const ViewEntriesScreen = ({ navigation, route }) => {
                 onPress={() => navigation.navigate('AddEntry', { baheeType, preHeaderName: headerName })}>
                 <Text style={styles.fabText}>+</Text>
             </TouchableOpacity>
+
+            {/* Edit Modal */}
+            <Modal visible={editModalVisible} animationType="slide" transparent>
+                <View style={styles.modalOverlay}>
+                    <View style={styles.modalContent}>
+                        <View style={styles.modalHeader}>
+                            <Text style={styles.modalTitle}>रिकॉर्ड संपादित करें</Text>
+                            <TouchableOpacity onPress={() => setEditModalVisible(false)}>
+                                <Text style={styles.modalCloseText}>✕</Text>
+                            </TouchableOpacity>
+                        </View>
+                        <ScrollView style={styles.modalBody}>
+                            <HindiInput label="जाति *" value={editForm.caste} onChangeText={setF('caste')} />
+                            <HindiInput label="नाम *" value={editForm.name} onChangeText={setF('name')} required />
+                            <HindiInput label="पिता का नाम" value={editForm.fatherName} onChangeText={setF('fatherName')} />
+                            <HindiInput label="गाँव का नाम" value={editForm.villageName} onChangeText={setF('villageName')} />
+                            <View style={{ flexDirection: 'row', gap: SPACING.sm }}>
+                                <View style={{ flex: 1 }}>
+                                    <HindiInput label="आवता" value={editForm.income} onChangeText={setF('income')} keyboardType="numeric" defaultTransliterate={false} />
+                                </View>
+                                <View style={{ flex: 1 }}>
+                                    <HindiInput label="ऊपर नेट" value={editForm.amount} onChangeText={setF('amount')} keyboardType="numeric" defaultTransliterate={false} />
+                                </View>
+                            </View>
+
+                            <View style={styles.lockBox}>
+                                <View style={{ flex: 1 }}>
+                                    <Text style={styles.lockBoxTitle}>रिकॉर्ड लॉक</Text>
+                                    <Text style={styles.lockBoxDesc}>लॉक होने पर रिकॉर्ड edit नहीं किया जा सकेगा</Text>
+                                </View>
+                                <Switch
+                                    value={editForm.isLocked}
+                                    onValueChange={setF('isLocked')}
+                                    trackColor={{ false: COLORS.border, true: COLORS.success }}
+                                />
+                            </View>
+                        </ScrollView>
+                        <View style={styles.modalFooter}>
+                            <TouchableOpacity style={styles.modalBtnCancel} onPress={() => setEditModalVisible(false)}>
+                                <Text style={styles.modalBtnCancelText}>रद्द करें</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity style={styles.modalBtnSave} onPress={handleEditSave} disabled={saving}>
+                                {saving ? <ActivityIndicator color={COLORS.white} /> : <Text style={styles.modalBtnSaveText}>सेव करें</Text>}
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </View>
+            </Modal>
         </View>
     );
 };
@@ -233,10 +330,8 @@ const styles = StyleSheet.create({
     amountLabel: { fontSize: 9, color: COLORS.textMuted },
     amountValue: { fontSize: FONT_SIZES.sm, fontWeight: '700', color: COLORS.primary },
     rowActions: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 4, marginTop: 4 },
-    lockedTag: { backgroundColor: '#FEE2E2', borderRadius: 6, paddingHorizontal: 5, paddingVertical: 2 },
-    lockedText: { fontSize: 10, color: COLORS.error },
-    actionBtn: { padding: 4 },
-    actionBtnText: { fontSize: 16 },
+    actionBtnBox: { borderRadius: 6, paddingVertical: 4, paddingHorizontal: 6, justifyContent: 'center', alignItems: 'center' },
+    actionBtnEmoji: { fontSize: 14, color: COLORS.white },
     empty: { alignItems: 'center', paddingTop: 60, gap: SPACING.base },
     emptyIcon: { fontSize: 48 },
     emptyText: { fontSize: FONT_SIZES.base, color: COLORS.textLight },
@@ -255,6 +350,20 @@ const styles = StyleSheet.create({
         alignItems: 'center', justifyContent: 'center', elevation: 5,
     },
     fabText: { color: COLORS.white, fontSize: 28, lineHeight: 34 },
+    modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', padding: SPACING.base },
+    modalContent: { backgroundColor: COLORS.white, borderRadius: BORDER_RADIUS.lg, padding: SPACING.base, maxHeight: '80%' },
+    modalHeader: { flexDirection: 'row', justifyContent: 'space-between', borderBottomWidth: 1, borderBottomColor: COLORS.border, paddingBottom: SPACING.sm, marginBottom: SPACING.sm },
+    modalTitle: { fontSize: FONT_SIZES.md, fontWeight: '700', color: COLORS.text },
+    modalCloseText: { fontSize: 24, color: COLORS.textLight, marginTop: -4 },
+    modalBody: {},
+    lockBox: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F9FAFB', padding: SPACING.sm, borderRadius: BORDER_RADIUS.md, borderWidth: 1, borderColor: COLORS.border, marginTop: SPACING.sm, marginBottom: SPACING.xl },
+    lockBoxTitle: { fontSize: FONT_SIZES.sm, fontWeight: '700', color: COLORS.error },
+    lockBoxDesc: { fontSize: 11, color: COLORS.primary },
+    modalFooter: { flexDirection: 'row', justifyContent: 'flex-end', gap: SPACING.sm, marginTop: SPACING.md, borderTopWidth: 1, borderTopColor: COLORS.border, paddingTop: SPACING.md },
+    modalBtnCancel: { paddingVertical: 8, paddingHorizontal: 16, borderRadius: BORDER_RADIUS.sm, borderWidth: 1, borderColor: COLORS.border },
+    modalBtnCancelText: { color: COLORS.text, fontWeight: '600' },
+    modalBtnSave: { paddingVertical: 8, paddingHorizontal: 20, borderRadius: BORDER_RADIUS.sm, backgroundColor: COLORS.primary, justifyContent: 'center', alignItems: 'center' },
+    modalBtnSaveText: { color: COLORS.white, fontWeight: '700' },
 });
 
 export default ViewEntriesScreen;

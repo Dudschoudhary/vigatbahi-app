@@ -40,11 +40,8 @@ export const AuthProvider = ({ children }) => {
 
     const register = async (userData) => {
         const response = await authAPI.register(userData);
-        const { token: newToken, user: newUser } = response.data;
-        await AsyncStorage.setItem('vb_token', newToken);
-        await AsyncStorage.setItem('vb_user', JSON.stringify(newUser));
-        setToken(newToken);
-        setUser(newUser);
+        // Website backend doesn't return token on register
+        // User must login separately after registering
         return response.data;
     };
 

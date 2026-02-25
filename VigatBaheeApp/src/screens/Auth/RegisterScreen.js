@@ -66,6 +66,9 @@ const RegisterScreen = ({ navigation }) => {
                 phone: form.phone,
                 password: form.password,
             });
+            Alert.alert('सफल', 'रजिस्ट्रेशन हो गया! कृपया लॉगिन करें।', [
+                { text: 'लॉगिन करें', onPress: () => navigation.navigate('Login') },
+            ]);
         } catch (err) {
             Alert.alert('त्रुटि', err.response?.data?.message || 'रजिस्ट्रेशन में त्रुटि');
         } finally {

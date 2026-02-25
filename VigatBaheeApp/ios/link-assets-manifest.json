@@ -1,0 +1,17 @@
+{
+  "migIndex": 1,
+  "data": [
+    {
+      "path": "src/assets/fonts/YatraOne-Regular.ttf",
+      "sha1": "a87b3e79cb9f85fc81e5cff36a54e597d041b7d3"
+    },
+    {
+      "path": "src/assets/fonts/Hind-Bold.ttf",
+      "sha1": "3e31770c8409b78cd98dea1c9379599c73e9a32d"
+    },
+    {
+      "path": "src/assets/fonts/Hind-Regular.ttf",
+      "sha1": "cea8da84b9c4a9c7ebad8fc0084d4e624de0609e"
+    }
+  ]
+}

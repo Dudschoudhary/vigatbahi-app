@@ -7,6 +7,26 @@ import { authAPI } from '../../api/apiClient';
 import { useAuth } from '../../context/AuthContext';
 import { COLORS, FONT_SIZES, SPACING, BORDER_RADIUS } from '../../utils/theme';
 
+// PwdField defined OUTSIDE to prevent keyboard dismiss on re-render
+const PwdField = ({ label, value, onChangeText, show, onToggle }) => (
+    <View style={styles.field}>
+        <Text style={styles.label}>{label}</Text>
+        <View style={styles.row}>
+            <TextInput
+                style={[styles.input, { flex: 1, borderTopRightRadius: 0, borderBottomRightRadius: 0 }]}
+                value={value}
+                onChangeText={onChangeText}
+                secureTextEntry={!show}
+                placeholder="••••••••"
+                placeholderTextColor={COLORS.textMuted}
+            />
+            <TouchableOpacity style={styles.eye} onPress={onToggle}>
+                <Text>{show ? '🙈' : '👁️'}</Text>
+            </TouchableOpacity>
+        </View>
+    </View>
+);
+
 const ChangePasswordScreen = ({ navigation }) => {
     const { logout } = useAuth();
     const [form, setForm] = useState({ current: '', newPwd: '', confirm: '' });
@@ -38,25 +58,6 @@ const ChangePasswordScreen = ({ navigation }) => {
         }
     };
 
-    const PwdField = ({ label, fKey, show, onToggle }) => (
-        <View style={styles.field}>
-            <Text style={styles.label}>{label}</Text>
-            <View style={styles.row}>
-                <TextInput
-                    style={[styles.input, { flex: 1, borderTopRightRadius: 0, borderBottomRightRadius: 0 }]}
-                    value={form[fKey]}
-                    onChangeText={set(fKey)}
-                    secureTextEntry={!show}
-                    placeholder="••••••••"
-                    placeholderTextColor={COLORS.textMuted}
-                />
-                <TouchableOpacity style={styles.eye} onPress={onToggle}>
-                    <Text>{show ? '🙈' : '👁️'}</Text>
-                </TouchableOpacity>
-            </View>
-        </View>
-    );
-
     return (
         <ScrollView style={styles.container} contentContainerStyle={styles.content}>
             <View style={styles.tip}>
@@ -64,9 +65,9 @@ const ChangePasswordScreen = ({ navigation }) => {
                     🔐 नया पासवर्ड मजबूत होना चाहिए: 8+ अक्षर, एक बड़ा अक्षर, एक छोटा अक्षर, एक अंक और एक विशेष चिन्ह (@$!%*?&)
                 </Text>
             </View>
-            <PwdField label="वर्तमान पासवर्ड *" fKey="current" show={showCurrent} onToggle={() => setShowCurrent(!showCurrent)} />
-            <PwdField label="नया पासवर्ड *" fKey="newPwd" show={showNew} onToggle={() => setShowNew(!showNew)} />
-            <PwdField label="नया पासवर्ड कन्फर्म करें *" fKey="confirm" show={showNew} onToggle={() => setShowNew(!showNew)} />
+            <PwdField label="वर्तमान पासवर्ड *" value={form.current} onChangeText={set('current')} show={showCurrent} onToggle={() => setShowCurrent(!showCurrent)} />
+            <PwdField label="नया पासवर्ड *" value={form.newPwd} onChangeText={set('newPwd')} show={showNew} onToggle={() => setShowNew(!showNew)} />
+            <PwdField label="नया पासवर्ड कन्फर्म करें *" value={form.confirm} onChangeText={set('confirm')} show={showNew} onToggle={() => setShowNew(!showNew)} />
 
             <TouchableOpacity
                 style={[styles.btn, loading && { opacity: 0.6 }]}

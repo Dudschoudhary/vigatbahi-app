@@ -21,11 +21,13 @@ const PersonalBaheeScreen = ({ navigation }) => {
 
     const setF = (k) => (v) => setForm((f) => ({ ...f, [k]: v }));
 
-    const fetchEntries = useCallback(async (q = search) => {
+    const fetchEntries = useCallback(async (customSearch) => {
         try {
-            const res = await personalBaheeAPI.getAll({ search: q });
-            setEntries(res.data.data || []);
-            setTotal(res.data.total || 0);
+            const s = customSearch !== undefined ? customSearch : search;
+            const res = await personalBaheeAPI.getAll({ search: s });
+            const allData = res.data.data || [];
+            setEntries(allData);
+            setTotal(res.data.total || allData.length);
         } catch { } finally {
             setLoading(false);
             setRefreshing(false);
