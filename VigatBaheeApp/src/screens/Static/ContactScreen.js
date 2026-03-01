@@ -10,8 +10,10 @@ const ContactScreen = () => (
             <Text style={styles.subtitle}>हम आपकी मदद के लिए यहाँ हैं</Text>
         </View>
         {[
-            { icon: '📧', label: 'ईमेल', value: 'support@vigatbahee.com', action: () => Linking.openURL('mailto:support@vigatbahee.com') },
-            { icon: '🌐', label: 'वेबसाइट', value: 'www.vigatbahee.com', action: () => Linking.openURL('https://www.vigatbahee.com') },
+            { icon: '📧', label: 'ईमेल', value: 'vigatbahi@gmail.com', action: () => Linking.openURL('mailto:vigatbahi@gmail.com') },
+            { icon: '📞', label: 'फ़ोन', value: '+91-9468650730', action: () => Linking.openURL('tel:+919468650730') },
+            { icon: '🌐', label: 'वेबसाइट', value: 'vigatbahi.me', action: () => Linking.openURL('https://vigatbahi.me') },
+            { icon: '📍', label: 'पता', value: 'Baldev Nagar, Jodhpur, Rajasthan 342003', action: () => { } },
         ].map((item, i) => (
             <TouchableOpacity key={i} style={styles.contactCard} onPress={item.action}>
                 <Text style={styles.contactIcon}>{item.icon}</Text>
@@ -24,7 +26,7 @@ const ContactScreen = () => (
         <View style={styles.msgBox}>
             <Text style={styles.msgTitle}>फीडबैक दें</Text>
             <Text style={styles.msgText}>
-                आपके सुझाव और प्रतिक्रिया हमारे लिए अत्यंत महत्वपूर्ण हैं। support@vigatbahee.com पर ईमेल करें।
+                आपके सुझाव और प्रतिक्रिया हमारे लिए अत्यंत महत्वपूर्ण हैं। vigatbahi@gmail.com पर ईमेल करें।
             </Text>
         </View>
     </ScrollView>

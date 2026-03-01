@@ -10,9 +10,9 @@ import {
     Dimensions,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
-import { COLORS, FONT_SIZES, SPACING, BORDER_RADIUS, BAHEE_TYPES, FONTS } from '../../utils/theme';
+import { COLORS, FONT_SIZES, SPACING, BORDER_RADIUS, FONTS } from '../../utils/theme';
 
-const { width, height } = Dimensions.get('window');
+const { width } = Dimensions.get('window');
 
 const LandingScreen = ({ navigation }) => {
     return (
@@ -22,39 +22,35 @@ const LandingScreen = ({ navigation }) => {
 
                 {/* Main Hero Card */}
                 <View style={styles.heroCard}>
-                    {/* Ganesh Block */}
+                    {/* Ganesh Ji */}
                     <View style={styles.ganeshContainer}>
                         <Image source={require('../../assets/ganesh_colored.png')} style={styles.ganeshImage} />
                     </View>
 
                     {/* Titles */}
                     <View style={styles.titleContainer}>
-                        <Text style={styles.appName}>विगत बही में आपका स्वागत है।</Text>
-                        <Text style={styles.appNameEn}>Welcome to Vigat Bahi - Digital Gift Registry</Text>
+                        <Text style={styles.appName}>🙏 विगत बही</Text>
                         <Text style={styles.taglineHi}>
                             डिजिटल विगत बही — शादी-विवाह और सभी सामाजिक कार्यक्रमों के रिकॉर्ड को आधुनिक, सुरक्षित और सहज रूप में रखें। कभी भी, कहीं से भी जानकारी देखें।
-                        </Text>
-                        <Text style={styles.taglineEn}>
-                            The modern digital solution for managing wedding gifts, monetary contributions (Neg-Dheg), and guest records for all your special occasions. Access your records anytime, anywhere.
                         </Text>
                     </View>
                 </View>
 
                 {/* Info Block */}
                 <View style={[styles.heroCard, { backgroundColor: '#EFF6FF', marginTop: SPACING.md }]}>
-                    <Text style={styles.infoTitle}>What is Vigat Bahi?</Text>
+                    <Text style={styles.infoTitle}>विगत बही क्या है?</Text>
                     <Text style={styles.infoDesc}>
-                        <Text style={{ fontWeight: '700' }}>Vigat Bahi</Text> (विगत बही) is a traditional Indian gift registry system that has been used for generations to record gifts and monetary contributions received during weddings and other social ceremonies.
+                        <Text style={{ fontWeight: '700' }}>विगत बही</Text> एक पारंपरिक भारतीय उपहार रजिस्ट्री प्रणाली है जो पीढ़ियों से शादी-विवाह और अन्य सामाजिक समारोहों में प्राप्त उपहारों और मौद्रिक योगदान को रिकॉर्ड करने के लिए उपयोग की जाती रही है।
                     </Text>
                     <Text style={styles.infoDesc}>
-                        Whether you're hosting a wedding, engagement ceremony, housewarming, or any other social function, Vigat Bahi helps you keep track of all contributions in a secure, searchable, and accessible format.
+                        चाहे आप शादी, सगाई, गृह प्रवेश, या कोई अन्य सामाजिक समारोह कर रहे हों — विगत बही आपके सभी योगदानों को सुरक्षित, खोजने योग्य और सुलभ प्रारूप में रखती है।
                     </Text>
                 </View>
 
                 {/* Features Section */}
                 <View style={styles.featuresSection}>
                     <View style={styles.sectionHeader}>
-                        <Text style={styles.sectionBadge}>विगत बही के बारे में – About Vigat Bahi</Text>
+                        <Text style={styles.sectionBadge}>विगत बही की विशेषताएं</Text>
                     </View>
                     <Text style={styles.featurePara}>
                         विगत बही में आप अपने सभी सामाजिक कार्यक्रमों की एंट्री ऑनलाइन रख सकते हैं। अब किसी शादी या कार्यक्रम में जाने से पहले डायरी देखने की ज़रूरत नहीं।
@@ -62,35 +58,35 @@ const LandingScreen = ({ navigation }) => {
 
                     <View style={styles.featuresGrid}>
                         <View style={styles.featureCard}>
-                            <Text style={styles.featureTitle}>🔎 Smart Search</Text>
-                            <Text style={styles.featureDesc}>नाम से तुरंत खोजें (Smart Search)।</Text>
+                            <Text style={styles.featureTitle}>🔎 स्मार्ट खोज</Text>
+                            <Text style={styles.featureDesc}>नाम से तुरंत खोजें।</Text>
                         </View>
                         <View style={styles.featureCard}>
-                            <Text style={styles.featureTitle}>📱 Access Anywhere</Text>
-                            <Text style={styles.featureDesc}>कहीं से भी, मोबाइल पर कभी भी देखें।</Text>
+                            <Text style={styles.featureTitle}>📱 कहीं से भी देखें</Text>
+                            <Text style={styles.featureDesc}>मोबाइल पर कभी भी, कहीं से भी।</Text>
                         </View>
                         <View style={styles.featureCard}>
-                            <Text style={styles.featureTitle}>🔐 Lock & Security</Text>
+                            <Text style={styles.featureTitle}>🔐 सुरक्षित डेटा</Text>
                             <Text style={styles.featureDesc}>एंट्री लॉक करें। डेटा पूरी तरह सुरक्षित।</Text>
                         </View>
                         <View style={styles.featureCard}>
-                            <Text style={styles.featureTitle}>⏰ Save Time</Text>
-                            <Text style={styles.featureDesc}>कागज की जगह डिजिटल रिकॉर्ड, समय बचाएं।</Text>
+                            <Text style={styles.featureTitle}>⏰ समय बचाएं</Text>
+                            <Text style={styles.featureDesc}>कागज की जगह डिजिटल रिकॉर्ड।</Text>
                         </View>
                     </View>
                 </View>
 
                 {/* CTA Buttons */}
                 <View style={styles.ctaContainer}>
-                    <Text style={styles.ctaTitle}>Ready to Get Started?</Text>
-                    <Text style={styles.ctaDesc}>Create your free account and start managing your event records digitally!</Text>
+                    <Text style={styles.ctaTitle}>अभी शुरू करें!</Text>
+                    <Text style={styles.ctaDesc}>मुफ्त खाता बनाएं और अपने कार्यक्रमों का डिजिटल रिकॉर्ड रखना शुरू करें!</Text>
 
                     <TouchableOpacity
                         style={styles.primaryBtn}
                         activeOpacity={0.8}
                         onPress={() => navigation.navigate('Register')}
                     >
-                        <Text style={styles.primaryBtnText}>Create Free Account</Text>
+                        <Text style={styles.primaryBtnText}>नया खाता बनाएं</Text>
                     </TouchableOpacity>
 
                     <TouchableOpacity
@@ -98,10 +94,12 @@ const LandingScreen = ({ navigation }) => {
                         activeOpacity={0.8}
                         onPress={() => navigation.navigate('Login')}
                     >
-                        <Text style={styles.outlineBtnText}>Login Instead</Text>
+                        <Text style={styles.outlineBtnText}>लॉगिन करें</Text>
                     </TouchableOpacity>
                 </View>
-                <Text style={styles.footer}>© 2024 Vigat Bahee. सर्वाधिकार सुरक्षित।</Text>
+
+                {/* Footer */}
+                <Text style={styles.footer}>© {new Date().getFullYear()} विगत बही। सर्वाधिकार सुरक्षित।</Text>
             </ScrollView>
         </LinearGradient>
     );
@@ -109,7 +107,7 @@ const LandingScreen = ({ navigation }) => {
 
 const styles = StyleSheet.create({
     container: { flex: 1 },
-    scrollContent: { padding: SPACING.base },
+    scrollContent: { padding: SPACING.base, paddingBottom: 40 },
     heroCard: {
         backgroundColor: COLORS.white,
         borderRadius: BORDER_RADIUS.xl,
@@ -121,17 +119,15 @@ const styles = StyleSheet.create({
         elevation: 8,
     },
     ganeshContainer: { alignItems: 'center', marginBottom: SPACING.md },
-    ganeshImage: { width: 140, height: 180, resizeMode: 'contain' },
-    titleContainer: { alignItems: 'flex-start' },
-    appName: { fontSize: FONT_SIZES['2xl'], fontFamily: FONTS.heading, color: COLORS.text, marginBottom: SPACING.xs },
-    appNameEn: { fontSize: FONT_SIZES.lg, fontFamily: FONTS.bold, color: COLORS.primary, marginBottom: SPACING.sm },
-    taglineHi: { fontSize: FONT_SIZES.md, fontFamily: FONTS.bold, color: COLORS.textLight, marginBottom: SPACING.sm, lineHeight: 24 },
-    taglineEn: { fontSize: FONT_SIZES.sm, fontFamily: FONTS.regular, color: COLORS.textMuted, lineHeight: 22 },
+    ganeshImage: { width: 180, height: 220, resizeMode: 'contain' },
+    titleContainer: { alignItems: 'center' },
+    appName: { fontSize: FONT_SIZES['2xl'], fontFamily: FONTS.heading, color: COLORS.primary, marginBottom: SPACING.sm, textAlign: 'center' },
+    taglineHi: { fontSize: FONT_SIZES.md, fontFamily: FONTS.bold, color: COLORS.textLight, marginBottom: SPACING.sm, lineHeight: 26, textAlign: 'center' },
     infoTitle: { fontSize: FONT_SIZES.lg, fontFamily: FONTS.bold, color: '#1E40AF', marginBottom: SPACING.sm },
     infoDesc: { fontSize: FONT_SIZES.sm, fontFamily: FONTS.regular, color: COLORS.textLight, marginBottom: SPACING.sm, lineHeight: 22 },
     featuresSection: { marginTop: SPACING.xl, paddingHorizontal: SPACING.sm },
     sectionHeader: { marginBottom: SPACING.md },
-    sectionBadge: { backgroundColor: '#B91C1C', color: COLORS.white, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, fontSize: FONT_SIZES.sm, fontFamily: FONTS.bold, alignSelf: 'flex-start' },
+    sectionBadge: { backgroundColor: '#B91C1C', color: COLORS.white, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, fontSize: FONT_SIZES.sm, fontFamily: FONTS.bold, alignSelf: 'flex-start', overflow: 'hidden' },
     featurePara: { fontSize: FONT_SIZES.sm, color: COLORS.text, marginBottom: SPACING.md, lineHeight: 22 },
     featuresGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
     featureCard: { width: '48%', backgroundColor: COLORS.background, padding: SPACING.base, borderRadius: BORDER_RADIUS.md, marginBottom: SPACING.base },

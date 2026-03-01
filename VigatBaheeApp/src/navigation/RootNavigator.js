@@ -17,6 +17,7 @@ import ResetPasswordScreen from '../screens/Auth/ResetPasswordScreen';
 import DashboardScreen from '../screens/Dashboard/DashboardScreen';
 import AddEntryScreen from '../screens/Entries/AddEntryScreen';
 import ViewEntriesScreen from '../screens/Entries/ViewEntriesScreen';
+import BaheeListScreen from '../screens/Entries/BaheeListScreen';
 import MyEntriesScreen from '../screens/Entries/MyEntriesScreen';
 import PersonalBaheeScreen from '../screens/Personal/PersonalBaheeScreen';
 import ChangePasswordScreen from '../screens/Auth/ChangePasswordScreen';
@@ -54,6 +55,7 @@ const AppStack = () => (
             headerTitleAlign: 'center',
         }}>
         <Stack.Screen name="Dashboard" component={DashboardScreen} options={{ headerShown: false }} />
+        <Stack.Screen name="BaheeList" component={BaheeListScreen} options={{ title: 'मौजूदा बही' }} />
         <Stack.Screen name="AddEntry" component={AddEntryScreen} options={{ title: 'नई विगत जोड़ें' }} />
         <Stack.Screen name="ViewEntries" component={ViewEntriesScreen} options={{ title: 'विगत देखें' }} />
         <Stack.Screen name="MyEntries" component={MyEntriesScreen} options={{ title: 'मेरी विगत' }} />

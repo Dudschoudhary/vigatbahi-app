@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
     View, Text, ScrollView, TouchableOpacity, StyleSheet,
-    Alert, ActivityIndicator, Platform, Switch,
+    Alert, ActivityIndicator, Switch,
 } from 'react-native';
 import HindiInput from '../../components/HindiInput';
 import OCRPicker from '../../components/OCRPicker';
@@ -14,15 +14,14 @@ const AddEntryScreen = ({ navigation, route }) => {
 
     // === HEADER FORM STATE ===
     const [selectedType, setSelectedType] = useState(preselectedType);
-    const [headerName, setHeaderName] = useState('');
+    const [headerName, setHeaderName] = useState(route?.params?.preHeaderName || '');
     const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
     const [tithi, setTithi] = useState('');
-    const [headerExists, setHeaderExists] = useState(false);
+    const [headerExists, setHeaderExists] = useState(!!route?.params?.preHeaderName);
     const [existingHeaders, setExistingHeaders] = useState([]);
     const [saveHeaderLoading, setSaveHeaderLoading] = useState(false);
 
     // === ENTRY FORM STATE ===
-    const [sno, setSno] = useState('');
     const [caste, setCaste] = useState('');
     const [name, setName] = useState('');
     const [fatherName, setFatherName] = useState('');
@@ -91,12 +90,12 @@ const AddEntryScreen = ({ navigation, route }) => {
                 baheeType: selectedType,
                 baheeTypeName: BAHEE_TYPES.find(t => t.key === selectedType)?.subLabel || selectedType,
                 headerName: headerName.trim(),
-                sno, caste, name: name.trim(), fatherName, villageName,
+                caste, name: name.trim(), fatherName, villageName,
                 income: incomeVal, amount: amountVal,
             });
             Alert.alert('सफल', 'प्रविष्टि सहेजी गई!', [
                 { text: 'और जोड़ें', onPress: clearEntry },
-                { text: 'प्रविष्टियाँ देखें', onPress: () => navigation.navigate('ViewEntries', { baheeType: selectedType, headerName }) },
+                { text: 'प्रविष्टियाँ देखें', onPress: () => navigation.navigate('ViewEntries', { baheeType: selectedType, headerName, baheeTypeName: BAHEE_TYPES.find(t => t.key === selectedType)?.label }) },
             ]);
         } catch (err) {
             Alert.alert('त्रुटि', err.response?.data?.message || 'प्रविष्टि सहेजने में त्रुटि');
@@ -106,7 +105,7 @@ const AddEntryScreen = ({ navigation, route }) => {
     };
 
     const clearEntry = () => {
-        setSno(''); setCaste(''); setName(''); setFatherName('');
+        setCaste(''); setName(''); setFatherName('');
         setVillageName(''); setIncome(''); setAmount('');
     };
 
@@ -114,7 +113,7 @@ const AddEntryScreen = ({ navigation, route }) => {
         <ScrollView style={styles.container} keyboardShouldPersistTaps="handled">
             {/* ─── SECTION 1: BAHEE HEADER ─── */}
             <View style={styles.section}>
-                <Text style={styles.sectionTitle}>1. विगत विवरण (Event Header)</Text>
+                <Text style={styles.sectionTitle}>१. विगत विवरण</Text>
 
                 {/* Bahee Type Picker */}
                 <Text style={styles.label}>विगत का प्रकार *</Text>
@@ -123,7 +122,7 @@ const AddEntryScreen = ({ navigation, route }) => {
                         <TouchableOpacity
                             key={t.key}
                             style={[styles.typeChip, selectedType === t.key && styles.typeChipActive]}
-                            onPress={() => setSelectedType(t.key)}>
+                            onPress={() => { setSelectedType(t.key); setHeaderExists(false); setHeaderName(''); }}>
                             <Text style={styles.typeChipEmoji}>{t.emoji}</Text>
                             <Text style={[styles.typeChipText, selectedType === t.key && styles.typeChipTextActive]}>
                                 {t.label}
@@ -152,7 +151,7 @@ const AddEntryScreen = ({ navigation, route }) => {
                 <HindiInput
                     label="विगत का नाम (जैसे: राम की शादी)"
                     value={headerName}
-                    onChangeText={setHeaderName}
+                    onChangeText={(v) => { setHeaderName(v); setHeaderExists(false); }}
                     placeholder="नाम दर्ज करें"
                     required
                 />
@@ -163,7 +162,7 @@ const AddEntryScreen = ({ navigation, route }) => {
                     <View style={styles.dateRow}>
                         <Text style={styles.dateValue}>{date}</Text>
                     </View>
-                    <Text style={styles.dateNote}>📱 अपनी डिवाइस की कीबोर्ड से YYYY-MM-DD फॉर्मेट में दर्ज करें</Text>
+                    <Text style={styles.dateNote}>📱 YYYY-MM-DD प्रारूप में दर्ज करें</Text>
                     <View style={styles.dateInputRow}>
                         <HindiInput
                             value={date}
@@ -184,7 +183,7 @@ const AddEntryScreen = ({ navigation, route }) => {
                 ) : null}
 
                 <TouchableOpacity
-                    style={[styles.saveBtn, saveHeaderLoading && { opacity: 0.6 }]}
+                    style={[styles.saveBtn, (saveHeaderLoading || headerExists) && { opacity: 0.6 }]}
                     onPress={handleSaveHeader}
                     disabled={saveHeaderLoading || headerExists}>
                     {saveHeaderLoading ? (
@@ -197,82 +196,85 @@ const AddEntryScreen = ({ navigation, route }) => {
                 </TouchableOpacity>
             </View>
 
-            {/* ─── SECTION 2: GUEST ENTRY ─── */}
-            <View style={styles.section}>
-                <Text style={styles.sectionTitle}>2. प्रविष्टि जोड़ें (Guest Entry)</Text>
+            {/* ─── SECTION 2: GUEST ENTRY — Only shown after header is saved ─── */}
+            {headerExists && (
+                <View style={styles.section}>
+                    <Text style={styles.sectionTitle}>२. प्रविष्टि जोड़ें</Text>
+                    <Text style={styles.baheeNameBadge}>📖 {headerName}</Text>
 
-                <OCRPicker
-                    onTextExtracted={(data) => {
-                        if (data.name) setName(data.name);
-                        if (data.villageName) setVillageName(data.villageName);
-                        if (data.amount) setAmount(data.amount);
-                    }}
-                />
+                    <OCRPicker
+                        onTextExtracted={(data) => {
+                            if (data.name) setName(data.name);
+                            if (data.villageName) setVillageName(data.villageName);
+                            if (data.amount) setAmount(data.amount);
+                        }}
+                    />
 
-                <HindiInput label="क्रमांक (S.No.)" value={sno} onChangeText={setSno} placeholder="1, 2, 3..." defaultTransliterate={false} keyboardType="numeric" />
-                <HindiInput label="जाति (Caste)" value={caste} onChangeText={setCaste} placeholder="जाति दर्ज करें" />
-                <HindiInput label="नाम (Name)" value={name} onChangeText={setName} placeholder="व्यक्ति का नाम" required />
-                <HindiInput label="पिता का नाम" value={fatherName} onChangeText={setFatherName} placeholder="पिता का नाम" />
-                <HindiInput label="गाँव / पता" value={villageName} onChangeText={setVillageName} placeholder="गाँव या पता" />
+                    {/* S.No. REMOVED as requested */}
+                    <HindiInput label="जाति" value={caste} onChangeText={setCaste} placeholder="जाति दर्ज करें" />
+                    <HindiInput label="नाम *" value={name} onChangeText={setName} placeholder="व्यक्ति का नाम" required />
+                    <HindiInput label="पिता का नाम" value={fatherName} onChangeText={setFatherName} placeholder="पिता का नाम" />
+                    <HindiInput label="गाँव / पता" value={villageName} onChangeText={setVillageName} placeholder="गाँव या पता" />
 
-                <View style={styles.amountRow}>
-                    <View style={{ flex: 1 }}>
-                        <HindiInput
-                            label="आवता (Income ₹)"
-                            value={income}
-                            onChangeText={setIncome}
-                            placeholder="0"
-                            keyboardType="numeric"
-                            defaultTransliterate={false}
-                        />
-                    </View>
-                    <View style={{ flex: 1, marginLeft: SPACING.sm }}>
-                        <View style={styles.labelRow}>
-                            <Text style={styles.label}>ऊपर नेट (Return ₹)</Text>
-                            {isAnya && (
-                                <Switch
-                                    value={enableAmount}
-                                    onValueChange={setEnableAmount}
-                                    trackColor={{ false: COLORS.border, true: COLORS.primary }}
-                                    thumbColor={enableAmount ? COLORS.white : '#f4f3f4'}
-                                    style={{ transform: [{ scaleX: 0.7 }, { scaleY: 0.7 }] }}
-                                />
-                            )}
+                    <View style={styles.amountRow}>
+                        <View style={{ flex: 1 }}>
+                            <HindiInput
+                                label="आवता ₹"
+                                value={income}
+                                onChangeText={setIncome}
+                                placeholder="0"
+                                keyboardType="numeric"
+                                defaultTransliterate={false}
+                            />
                         </View>
-                        <HindiInput
-                            value={amount}
-                            onChangeText={setAmount}
-                            placeholder="0"
-                            keyboardType="numeric"
-                            defaultTransliterate={false}
-                            editable={!disableAmount && (isAnya ? enableAmount : true)}
-                        />
+                        <View style={{ flex: 1, marginLeft: SPACING.sm }}>
+                            <View style={styles.labelRow}>
+                                <Text style={styles.label}>ऊपर नेट ₹</Text>
+                                {isAnya && (
+                                    <Switch
+                                        value={enableAmount}
+                                        onValueChange={setEnableAmount}
+                                        trackColor={{ false: COLORS.border, true: COLORS.primary }}
+                                        thumbColor={enableAmount ? COLORS.white : '#f4f3f4'}
+                                        style={{ transform: [{ scaleX: 0.7 }, { scaleY: 0.7 }] }}
+                                    />
+                                )}
+                            </View>
+                            <HindiInput
+                                value={amount}
+                                onChangeText={setAmount}
+                                placeholder="0"
+                                keyboardType="numeric"
+                                defaultTransliterate={false}
+                                editable={!disableAmount && (isAnya ? enableAmount : true)}
+                            />
+                        </View>
                     </View>
-                </View>
 
-                {disableAmount && (
-                    <Text style={styles.noteText}>
-                        ℹ️ {selectedType === 'odhawani' ? 'ओढावणी' : 'माहेरा'} में ऊपर नेट लागू नहीं होता
-                    </Text>
-                )}
-
-                <TouchableOpacity
-                    style={[styles.saveEntryBtn, saveEntryLoading && { opacity: 0.6 }]}
-                    onPress={handleSaveEntry}
-                    disabled={saveEntryLoading}>
-                    {saveEntryLoading ? (
-                        <ActivityIndicator color={COLORS.white} />
-                    ) : (
-                        <Text style={styles.saveBtnText}>💾 प्रविष्टि सहेजें</Text>
+                    {disableAmount && (
+                        <Text style={styles.noteText}>
+                            ℹ️ {selectedType === 'odhawani' ? 'ओढावणी' : 'माहेरा'} में ऊपर नेट लागू नहीं होता
+                        </Text>
                     )}
-                </TouchableOpacity>
 
-                <TouchableOpacity
-                    style={styles.viewEntriesBtn}
-                    onPress={() => navigation.navigate('ViewEntries', { baheeType: selectedType, headerName })}>
-                    <Text style={styles.viewEntriesBtnText}>📋 प्रविष्टियाँ देखें</Text>
-                </TouchableOpacity>
-            </View>
+                    <TouchableOpacity
+                        style={[styles.saveEntryBtn, saveEntryLoading && { opacity: 0.6 }]}
+                        onPress={handleSaveEntry}
+                        disabled={saveEntryLoading}>
+                        {saveEntryLoading ? (
+                            <ActivityIndicator color={COLORS.white} />
+                        ) : (
+                            <Text style={styles.saveBtnText}>💾 प्रविष्टि सहेजें</Text>
+                        )}
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                        style={styles.viewEntriesBtn}
+                        onPress={() => navigation.navigate('ViewEntries', { baheeType: selectedType, headerName, baheeTypeName: BAHEE_TYPES.find(t => t.key === selectedType)?.label })}>
+                        <Text style={styles.viewEntriesBtnText}>📋 प्रविष्टियाँ देखें</Text>
+                    </TouchableOpacity>
+                </View>
+            )}
         </ScrollView>
     );
 };
@@ -288,6 +290,11 @@ const styles = StyleSheet.create({
     sectionTitle: {
         fontSize: FONT_SIZES.md, fontWeight: '800', color: COLORS.primary,
         marginBottom: SPACING.base, borderBottomWidth: 2, borderBottomColor: COLORS.primaryLight, paddingBottom: SPACING.xs,
+    },
+    baheeNameBadge: {
+        backgroundColor: '#EFF6FF', borderRadius: 8, padding: SPACING.xs,
+        color: '#1E40AF', fontWeight: '700', fontSize: FONT_SIZES.sm,
+        marginBottom: SPACING.base, textAlign: 'center',
     },
     label: { fontSize: FONT_SIZES.sm, fontWeight: '600', color: COLORS.text, marginBottom: SPACING.xs },
     typeRow: { marginBottom: SPACING.base },

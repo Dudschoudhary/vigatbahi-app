@@ -1,17 +1,19 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useLayoutEffect } from 'react';
 import {
     View, Text, FlatList, StyleSheet, TouchableOpacity,
     TextInput, ActivityIndicator, Alert, RefreshControl,
     Modal, ScrollView, Switch
 } from 'react-native';
 import HindiInput from '../../components/HindiInput';
-import { baheeEntriesAPI } from '../../api/apiClient';
-import { COLORS, FONT_SIZES, SPACING, BORDER_RADIUS } from '../../utils/theme';
+import CustomDropdown from '../../components/CustomDropdown';
+import AppFooter from '../../components/AppFooter';
+import { baheeEntriesAPI, baheeDetailsAPI } from '../../api/apiClient';
+import { COLORS, FONT_SIZES, SPACING, BORDER_RADIUS, BAHEE_TYPES, FONTS } from '../../utils/theme';
 
 const PAGE_OPTIONS = [10, 20, 50, 100];
 
 const ViewEntriesScreen = ({ navigation, route }) => {
-    const { baheeType, headerName, baheeTypeName } = route?.params || {};
+    const { baheeType: initialBaheeType, headerName, baheeTypeName } = route?.params || {};
     const [entries, setEntries] = useState([]);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
@@ -21,44 +23,80 @@ const ViewEntriesScreen = ({ navigation, route }) => {
     const [total, setTotal] = useState(0);
     const [totalPages, setTotalPages] = useState(1);
 
+    // Bahi type dropdown
+    const [selectedBaheeType, setSelectedBaheeType] = useState(initialBaheeType || '');
+
+    // Edit modal state
     const [editModalVisible, setEditModalVisible] = useState(false);
     const [editingEntry, setEditingEntry] = useState(null);
     const [editForm, setEditForm] = useState({ caste: '', name: '', fatherName: '', villageName: '', income: '', amount: '', isLocked: false });
     const [saving, setSaving] = useState(false);
 
+    // View modal state
+    const [viewModalVisible, setViewModalVisible] = useState(false);
+    const [viewingEntry, setViewingEntry] = useState(null);
+
+    // Inline add entry form
+    const [addFormVisible, setAddFormVisible] = useState(false);
+    const [addForm, setAddForm] = useState({ caste: '', name: '', fatherName: '', villageName: '', income: '', amount: '' });
+    const [addSaving, setAddSaving] = useState(false);
+
     const setF = (k) => (v) => setEditForm((f) => ({ ...f, [k]: v }));
+    const setAF = (k) => (v) => setAddForm((f) => ({ ...f, [k]: v }));
+
+    // Set the nav header title to the bahee name
+    useLayoutEffect(() => {
+        if (headerName) {
+            navigation.setOptions({ title: headerName });
+        }
+    }, [navigation, headerName]);
 
     const fetchEntries = useCallback(async (customPage, customLimit, customSearch) => {
         try {
-            let res;
             const p = customPage !== undefined ? customPage : page;
             const l = customLimit !== undefined ? customLimit : limit;
             const s = customSearch !== undefined ? customSearch : search;
 
             const params = { page: p, limit: l, search: s };
 
-            if (baheeType && headerName) {
-                res = await baheeEntriesAPI.getByTypeAndHeader(baheeType, headerName, params);
+            let res;
+            const bt = selectedBaheeType || initialBaheeType;
+            if (bt && headerName) {
+                res = await baheeEntriesAPI.getByTypeAndHeader(bt, headerName, params);
+            } else if (bt) {
+                res = await baheeEntriesAPI.getAll({ ...params, baheeType: bt });
             } else {
                 res = await baheeEntriesAPI.getAll(params);
             }
             const allEntries = res.data.data || [];
             setEntries(allEntries);
             setTotal(res.data.total || allEntries.length);
-            setTotalPages(res.data.pages || Math.ceil(allEntries.length / limit) || 1);
+            setTotalPages(res.data.pages || Math.ceil(allEntries.length / (l || 10)) || 1);
         } catch (err) {
             console.error('Fetch entries error:', err);
         } finally {
             setLoading(false);
             setRefreshing(false);
         }
-    }, [baheeType, headerName, limit, page, search]);
+    }, [initialBaheeType, selectedBaheeType, headerName, limit, page, search]);
 
     useEffect(() => { fetchEntries(); }, []);
+
+    // Search debounce
     useEffect(() => {
-        const t = setTimeout(() => { setPage(1); fetchEntries(1); }, 400);
+        const t = setTimeout(() => {
+            setPage(1);
+            fetchEntries(1, limit, search);
+        }, 400);
         return () => clearTimeout(t);
     }, [search]);
+
+    // Reload when bahi type changes
+    useEffect(() => {
+        setPage(1);
+        setLoading(true);
+        fetchEntries(1, limit, search);
+    }, [selectedBaheeType]);
 
     const handleDelete = (id) => {
         Alert.alert('प्रविष्टि हटाएं', 'क्या आप वाकई इस प्रविष्टि को हटाना चाहते हैं?', [
@@ -92,11 +130,6 @@ const ViewEntriesScreen = ({ navigation, route }) => {
         }
         setSaving(true);
         try {
-            // Check if lock state changed to handle locked entry correctly
-            if (editingEntry.isLocked && !editForm.isLocked) {
-                // If it was locked and user wants to unlock, we must use the toggle lock API first (if it existed) or the backend might block update.
-                // Assuming standard update works or we just toggle client side
-            }
             await baheeEntriesAPI.update(editingEntry._id, {
                 caste: editForm.caste,
                 name: editForm.name,
@@ -106,15 +139,51 @@ const ViewEntriesScreen = ({ navigation, route }) => {
                 amount: parseFloat(editForm.amount) || 0,
                 isLocked: editForm.isLocked,
                 lockDate: editForm.isLocked && !editingEntry.isLocked ? new Date() : editingEntry.lockDate,
-                lockDescription: editForm.isLocked && !editingEntry.isLocked ? 'User locked' : editingEntry.lockDescription,
+                lockDescription: editForm.isLocked && !editingEntry.isLocked ? 'उपयोगकर्ता ने लॉक किया' : editingEntry.lockDescription,
             });
             setEditModalVisible(false);
             fetchEntries();
             Alert.alert('सफल', 'प्रविष्टि अपडेट की गई');
         } catch (err) {
-            Alert.alert('त्रुटि', err.response?.data?.message || 'अपडेट में त्रुटि। यदि यह लॉक्ड है, तो पहले अनलॉक करें।');
+            Alert.alert('त्रुटि', err.response?.data?.message || 'अपडेट में त्रुटि। यदि यह लॉक है, तो पहले अनलॉक करें।');
         } finally {
             setSaving(false);
+        }
+    };
+
+    // Inline add entry
+    const handleAddEntry = async () => {
+        if (!addForm.name.trim()) {
+            Alert.alert('त्रुटि', 'नाम अनिवार्य है');
+            return;
+        }
+        const bt = selectedBaheeType || initialBaheeType;
+        if (!bt || !headerName) {
+            Alert.alert('त्रुटि', 'बही का प्रकार और नाम आवश्यक है');
+            return;
+        }
+        setAddSaving(true);
+        try {
+            const typeInfo = BAHEE_TYPES.find(t => t.key === bt);
+            await baheeEntriesAPI.create({
+                baheeType: bt,
+                baheeTypeName: typeInfo?.subLabel || bt,
+                headerName: headerName.trim(),
+                caste: addForm.caste,
+                name: addForm.name.trim(),
+                fatherName: addForm.fatherName,
+                villageName: addForm.villageName,
+                income: parseFloat(addForm.income) || 0,
+                amount: parseFloat(addForm.amount) || 0,
+            });
+            setAddForm({ caste: '', name: '', fatherName: '', villageName: '', income: '', amount: '' });
+            setAddFormVisible(false);
+            fetchEntries();
+            Alert.alert('सफल', 'प्रविष्टि सहेजी गई!');
+        } catch (err) {
+            Alert.alert('त्रुटि', err.response?.data?.message || 'प्रविष्टि सहेजने में त्रुटि');
+        } finally {
+            setAddSaving(false);
         }
     };
 
@@ -147,7 +216,9 @@ const ViewEntriesScreen = ({ navigation, route }) => {
                 {item.isLocked && (
                     <Text style={{ fontSize: 14, marginRight: 4 }}>🔒</Text>
                 )}
-                <TouchableOpacity style={[styles.actionBtnBox, { backgroundColor: COLORS.primary }]} onPress={() => { }}>
+                <TouchableOpacity
+                    style={[styles.actionBtnBox, { backgroundColor: '#0284C7' }]}
+                    onPress={() => { setViewingEntry(item); setViewModalVisible(true); }}>
                     <Text style={styles.actionBtnEmoji}>👁️</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={[styles.actionBtnBox, { backgroundColor: COLORS.primary }]} onPress={() => handleEditOpen(item)}>
@@ -160,18 +231,43 @@ const ViewEntriesScreen = ({ navigation, route }) => {
         </View>
     );
 
+    const renderListFooter = () => <AppFooter />;
+
     return (
         <View style={styles.container}>
-            {/* Search Bar */}
+            {/* Hindi Search Bar */}
             <View style={styles.searchBar}>
-                <TextInput
-                    style={styles.searchInput}
+                <HindiInput
                     value={search}
                     onChangeText={setSearch}
-                    placeholder="🔍  खोजें (नाम, जाति, गाँव...)"
-                    placeholderTextColor={COLORS.textMuted}
+                    placeholder="खोजें (नाम, जाति, गाँव...)"
+                    style={{ marginBottom: 0 }}
                 />
             </View>
+
+            {/* Bahi Type Dropdown */}
+            {!headerName && (
+                <View style={styles.pickerContainer}>
+                    <CustomDropdown
+                        label="बही प्रकार"
+                        value={selectedBaheeType}
+                        onValueChange={(val) => setSelectedBaheeType(val)}
+                        placeholder="सभी बही"
+                        options={[
+                            { label: 'सभी बही', value: '' },
+                            ...BAHEE_TYPES.map(t => ({ label: `${t.emoji} ${t.label}`, value: t.key })),
+                        ]}
+                    />
+                </View>
+            )}
+
+            {/* Bahee name info strip */}
+            {headerName ? (
+                <View style={styles.baheeStrip}>
+                    <Text style={styles.baheeStripType}>{baheeTypeName || selectedBaheeType || initialBaheeType}</Text>
+                    <Text style={styles.baheeStripName}>📖 {headerName}</Text>
+                </View>
+            ) : null}
 
             {/* Stats + Page size */}
             <View style={styles.filterRow}>
@@ -187,6 +283,35 @@ const ViewEntriesScreen = ({ navigation, route }) => {
                     ))}
                 </View>
             </View>
+
+            {/* Inline Add Entry Form */}
+            {addFormVisible && headerName && (
+                <View style={styles.addFormContainer}>
+                    <View style={styles.addFormHeader}>
+                        <Text style={styles.addFormTitle}>➕ नई प्रविष्टि जोड़ें</Text>
+                        <TouchableOpacity onPress={() => setAddFormVisible(false)}>
+                            <Text style={styles.addFormClose}>✕</Text>
+                        </TouchableOpacity>
+                    </View>
+                    <ScrollView style={{ maxHeight: 300 }} keyboardShouldPersistTaps="handled">
+                        <HindiInput label="जाति" value={addForm.caste} onChangeText={setAF('caste')} placeholder="जाति दर्ज करें" />
+                        <HindiInput label="नाम *" value={addForm.name} onChangeText={setAF('name')} placeholder="व्यक्ति का नाम" required />
+                        <HindiInput label="पिता का नाम" value={addForm.fatherName} onChangeText={setAF('fatherName')} placeholder="पिता का नाम" />
+                        <HindiInput label="गाँव / पता" value={addForm.villageName} onChangeText={setAF('villageName')} placeholder="गाँव या पता" />
+                        <View style={{ flexDirection: 'row', gap: SPACING.sm }}>
+                            <View style={{ flex: 1 }}>
+                                <HindiInput label="आवता ₹" value={addForm.income} onChangeText={setAF('income')} placeholder="0" keyboardType="numeric" defaultTransliterate={false} />
+                            </View>
+                            <View style={{ flex: 1 }}>
+                                <HindiInput label="ऊपर नेट ₹" value={addForm.amount} onChangeText={setAF('amount')} placeholder="0" keyboardType="numeric" defaultTransliterate={false} />
+                            </View>
+                        </View>
+                        <TouchableOpacity style={[styles.addFormSaveBtn, addSaving && { opacity: 0.6 }]} onPress={handleAddEntry} disabled={addSaving}>
+                            {addSaving ? <ActivityIndicator color={COLORS.white} /> : <Text style={styles.addFormSaveBtnText}>💾 प्रविष्टि सहेजें</Text>}
+                        </TouchableOpacity>
+                    </ScrollView>
+                </View>
+            )}
 
             {/* Table Header */}
             <View style={styles.tableHeader}>
@@ -207,12 +332,17 @@ const ViewEntriesScreen = ({ navigation, route }) => {
                     ListEmptyComponent={
                         <View style={styles.empty}>
                             <Text style={styles.emptyIcon}>📭</Text>
-                            <Text style={styles.emptyText}>कोई प्रविष्टि नहीं मिली</Text>
-                            <TouchableOpacity onPress={() => navigation.navigate('AddEntry', { baheeType })}>
-                                <Text style={styles.emptyLink}>+ नई प्रविष्टि जोड़ें</Text>
-                            </TouchableOpacity>
+                            <Text style={styles.emptyText}>
+                                {search ? 'कोई रिकॉर्ड नहीं मिला' : 'कोई प्रविष्टि नहीं मिली'}
+                            </Text>
+                            {headerName && (
+                                <TouchableOpacity onPress={() => setAddFormVisible(true)}>
+                                    <Text style={styles.emptyLink}>+ नई प्रविष्टि जोड़ें</Text>
+                                </TouchableOpacity>
+                            )}
                         </View>
                     }
+                    ListFooterComponent={entries.length > 0 ? renderListFooter : null}
                 />
             )}
 
@@ -235,14 +365,51 @@ const ViewEntriesScreen = ({ navigation, route }) => {
                 </View>
             )}
 
-            {/* FAB - Add Entry */}
-            <TouchableOpacity
-                style={styles.fab}
-                onPress={() => navigation.navigate('AddEntry', { baheeType, preHeaderName: headerName })}>
-                <Text style={styles.fabText}>+</Text>
-            </TouchableOpacity>
+            {/* FAB - Add Entry (opens inline form) */}
+            {headerName && (
+                <TouchableOpacity
+                    style={styles.fab}
+                    onPress={() => setAddFormVisible(!addFormVisible)}>
+                    <Text style={styles.fabText}>{addFormVisible ? '✕' : '+'}</Text>
+                </TouchableOpacity>
+            )}
 
-            {/* Edit Modal */}
+            {/* ─── VIEW MODAL ─── */}
+            <Modal visible={viewModalVisible} animationType="slide" transparent>
+                <View style={styles.modalOverlay}>
+                    <View style={styles.modalContent}>
+                        <View style={styles.modalHeader}>
+                            <Text style={styles.modalTitle}>प्रविष्टि विवरण</Text>
+                            <TouchableOpacity onPress={() => setViewModalVisible(false)}>
+                                <Text style={styles.modalCloseText}>✕</Text>
+                            </TouchableOpacity>
+                        </View>
+                        {viewingEntry && (
+                            <ScrollView>
+                                {[
+                                    { label: 'नाम', value: viewingEntry.name },
+                                    { label: 'जाति', value: viewingEntry.caste },
+                                    { label: 'पिता का नाम', value: viewingEntry.fatherName },
+                                    { label: 'गाँव / पता', value: viewingEntry.villageName },
+                                    { label: 'आवता (₹)', value: viewingEntry.income?.toString() || '0' },
+                                    { label: 'ऊपर नेट (₹)', value: viewingEntry.amount?.toString() || '0' },
+                                    { label: 'स्थिति', value: viewingEntry.isLocked ? '🔒 लॉक किया गया' : '🔓 खुला' },
+                                ].map((row, i) => row.value ? (
+                                    <View key={i} style={styles.viewRow}>
+                                        <Text style={styles.viewLabel}>{row.label}</Text>
+                                        <Text style={styles.viewValue}>{row.value}</Text>
+                                    </View>
+                                ) : null)}
+                            </ScrollView>
+                        )}
+                        <TouchableOpacity style={styles.modalBtnSave} onPress={() => setViewModalVisible(false)}>
+                            <Text style={styles.modalBtnSaveText}>बंद करें</Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            </Modal>
+
+            {/* ─── EDIT MODAL ─── */}
             <Modal visible={editModalVisible} animationType="slide" transparent>
                 <View style={styles.modalOverlay}>
                     <View style={styles.modalContent}>
@@ -253,7 +420,7 @@ const ViewEntriesScreen = ({ navigation, route }) => {
                             </TouchableOpacity>
                         </View>
                         <ScrollView style={styles.modalBody}>
-                            <HindiInput label="जाति *" value={editForm.caste} onChangeText={setF('caste')} />
+                            <HindiInput label="जाति" value={editForm.caste} onChangeText={setF('caste')} />
                             <HindiInput label="नाम *" value={editForm.name} onChangeText={setF('name')} required />
                             <HindiInput label="पिता का नाम" value={editForm.fatherName} onChangeText={setF('fatherName')} />
                             <HindiInput label="गाँव का नाम" value={editForm.villageName} onChangeText={setF('villageName')} />
@@ -269,7 +436,7 @@ const ViewEntriesScreen = ({ navigation, route }) => {
                             <View style={styles.lockBox}>
                                 <View style={{ flex: 1 }}>
                                     <Text style={styles.lockBoxTitle}>रिकॉर्ड लॉक</Text>
-                                    <Text style={styles.lockBoxDesc}>लॉक होने पर रिकॉर्ड edit नहीं किया जा सकेगा</Text>
+                                    <Text style={styles.lockBoxDesc}>लॉक होने पर रिकॉर्ड संपादित नहीं होगा</Text>
                                 </View>
                                 <Switch
                                     value={editForm.isLocked}
@@ -295,12 +462,17 @@ const ViewEntriesScreen = ({ navigation, route }) => {
 
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: COLORS.background },
-    searchBar: { backgroundColor: COLORS.white, padding: SPACING.sm, borderBottomWidth: 1, borderBottomColor: COLORS.border },
-    searchInput: {
-        backgroundColor: COLORS.background, borderRadius: BORDER_RADIUS.md,
-        paddingHorizontal: SPACING.base, paddingVertical: SPACING.xs,
-        fontSize: FONT_SIZES.sm, color: COLORS.text,
+    searchBar: { backgroundColor: COLORS.white, paddingHorizontal: SPACING.sm, paddingTop: SPACING.sm, borderBottomWidth: 1, borderBottomColor: COLORS.border },
+    pickerContainer: {
+        paddingHorizontal: SPACING.sm, paddingTop: SPACING.sm, backgroundColor: COLORS.white,
+        borderBottomWidth: 1, borderBottomColor: COLORS.border,
     },
+    baheeStrip: {
+        backgroundColor: '#EFF6FF', paddingHorizontal: SPACING.base, paddingVertical: SPACING.xs,
+        borderBottomWidth: 1, borderBottomColor: '#BFDBFE', flexDirection: 'row', alignItems: 'center', gap: SPACING.sm,
+    },
+    baheeStripType: { fontSize: FONT_SIZES.xs, color: COLORS.primary, fontFamily: FONTS.bold, backgroundColor: '#DBEAFE', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10, overflow: 'hidden' },
+    baheeStripName: { fontSize: FONT_SIZES.sm, color: '#1E40AF', fontFamily: FONTS.bold, flex: 1 },
     filterRow: {
         flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
         paddingHorizontal: SPACING.sm, paddingVertical: SPACING.xs,
@@ -312,6 +484,17 @@ const styles = StyleSheet.create({
     limitBtnActive: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
     limitBtnText: { fontSize: 10, color: COLORS.textLight, fontWeight: '600' },
     limitBtnTextActive: { color: COLORS.white },
+    // Add Form
+    addFormContainer: {
+        backgroundColor: COLORS.white, margin: SPACING.sm, borderRadius: BORDER_RADIUS.lg,
+        padding: SPACING.base, elevation: 4, borderWidth: 2, borderColor: COLORS.primary,
+    },
+    addFormHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: SPACING.sm, borderBottomWidth: 1, borderBottomColor: COLORS.border, paddingBottom: SPACING.sm },
+    addFormTitle: { fontSize: FONT_SIZES.md, fontWeight: '800', color: COLORS.primary },
+    addFormClose: { fontSize: 22, color: COLORS.textLight },
+    addFormSaveBtn: { backgroundColor: COLORS.primary, borderRadius: BORDER_RADIUS.md, paddingVertical: 12, alignItems: 'center', marginTop: SPACING.sm },
+    addFormSaveBtnText: { color: COLORS.white, fontSize: FONT_SIZES.md, fontWeight: '800' },
+    // Table
     tableHeader: {
         flexDirection: 'row', backgroundColor: COLORS.primary,
         paddingHorizontal: SPACING.sm, paddingVertical: SPACING.xs,
@@ -351,11 +534,14 @@ const styles = StyleSheet.create({
     },
     fabText: { color: COLORS.white, fontSize: 28, lineHeight: 34 },
     modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', padding: SPACING.base },
-    modalContent: { backgroundColor: COLORS.white, borderRadius: BORDER_RADIUS.lg, padding: SPACING.base, maxHeight: '80%' },
+    modalContent: { backgroundColor: COLORS.white, borderRadius: BORDER_RADIUS.lg, padding: SPACING.base, maxHeight: '85%' },
     modalHeader: { flexDirection: 'row', justifyContent: 'space-between', borderBottomWidth: 1, borderBottomColor: COLORS.border, paddingBottom: SPACING.sm, marginBottom: SPACING.sm },
     modalTitle: { fontSize: FONT_SIZES.md, fontWeight: '700', color: COLORS.text },
     modalCloseText: { fontSize: 24, color: COLORS.textLight, marginTop: -4 },
     modalBody: {},
+    viewRow: { flexDirection: 'row', paddingVertical: SPACING.sm, borderBottomWidth: 1, borderBottomColor: '#F3F4F6' },
+    viewLabel: { flex: 1, fontSize: FONT_SIZES.sm, color: COLORS.textLight, fontWeight: '600' },
+    viewValue: { flex: 2, fontSize: FONT_SIZES.sm, color: COLORS.text, fontWeight: '700' },
     lockBox: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F9FAFB', padding: SPACING.sm, borderRadius: BORDER_RADIUS.md, borderWidth: 1, borderColor: COLORS.border, marginTop: SPACING.sm, marginBottom: SPACING.xl },
     lockBoxTitle: { fontSize: FONT_SIZES.sm, fontWeight: '700', color: COLORS.error },
     lockBoxDesc: { fontSize: 11, color: COLORS.primary },

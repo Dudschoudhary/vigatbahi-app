@@ -7,6 +7,7 @@ import LinearGradient from 'react-native-linear-gradient';
 import { baheeDetailsAPI } from '../../api/apiClient';
 import { useAuth } from '../../context/AuthContext';
 import LoadingSpinner from '../../components/LoadingSpinner';
+import AppFooter from '../../components/AppFooter';
 import { COLORS, FONT_SIZES, SPACING, BORDER_RADIUS, BAHEE_TYPES, FONTS } from '../../utils/theme';
 
 const DashboardScreen = ({ navigation }) => {
@@ -18,10 +19,9 @@ const DashboardScreen = ({ navigation }) => {
     const fetchData = useCallback(async () => {
         try {
             const res = await baheeDetailsAPI.getAll();
-            // Website backend returns User with populated baheeDetails_ids
-            const userData = res.data.data;
-            const baheeList = userData?.baheeDetails_ids || userData || [];
-            setAllBahee(Array.isArray(baheeList) ? baheeList : []);
+            // Website backend returns { data: [...] } — flat array of bahee records
+            const raw = res.data.data || res.data || [];
+            setAllBahee(Array.isArray(raw) ? raw : []);
         } catch (err) {
             console.error('Dashboard fetch error:', err);
         } finally {
@@ -69,9 +69,9 @@ const DashboardScreen = ({ navigation }) => {
                 <View style={styles.dashboardCard}>
                     {/* Welcome Section */}
                     <View style={styles.welcomeSection}>
-                        <Text style={styles.dashboardTitle}>🙏 विगत बही Dashboard</Text>
+                        <Text style={styles.dashboardTitle}>🙏 विगत बही</Text>
                         <Text style={styles.dashboardSubtitle}>
-                            अपनी बही का प्रबंधन करें - नई बही बनाएं, मौजूदा देखें या entries प्रबंधित करें
+                            अपनी बही का प्रबंधन करें — नई बही बनाएं, मौजूदा देखें या प्रविष्टियाँ प्रबंधित करें
                         </Text>
                         {allBahee.length > 0 && (
                             <Text style={styles.totalCountText}>
@@ -83,11 +83,11 @@ const DashboardScreen = ({ navigation }) => {
                     {/* Quick Action Cards */}
                     <View style={styles.actionsGrid}>
                         {/* 1. Existing Bahee (Using current Dashboard scroll) */}
-                        <TouchableOpacity activeOpacity={0.9} onPress={() => { }} style={{ width: '100%', marginBottom: SPACING.md }}>
+                        <TouchableOpacity activeOpacity={0.9} onPress={() => navigation.navigate('BaheeList')} style={{ width: '100%', marginBottom: SPACING.md }}>
                             <LinearGradient colors={COLORS.blueGradient} style={styles.actionGradientCard}>
                                 <Text style={styles.actionEmoji}>📚</Text>
                                 <Text style={styles.actionTitle}>मौजूदा बही देखें</Text>
-                                <Text style={styles.actionDesc}>सभी सहेजी गई बहियों को देखें</Text>
+                                <Text style={styles.actionDesc}>सभी सहेजी गई बहियाँ देखें</Text>
                             </LinearGradient>
                         </TouchableOpacity>
 
@@ -95,8 +95,8 @@ const DashboardScreen = ({ navigation }) => {
                         <TouchableOpacity activeOpacity={0.9} onPress={() => navigation.navigate('MyEntries')} style={{ width: '100%', marginBottom: SPACING.md }}>
                             <LinearGradient colors={COLORS.greenGradient} style={styles.actionGradientCard}>
                                 <Text style={styles.actionEmoji}>📝</Text>
-                                <Text style={styles.actionTitle}>आपकी Entries</Text>
-                                <Text style={styles.actionDesc}>अपनी डाली गई entries देखें</Text>
+                                <Text style={styles.actionTitle}>मेरी प्रविष्टियाँ</Text>
+                                <Text style={styles.actionDesc}>अपनी डाली गई प्रविष्टियाँ देखें</Text>
                             </LinearGradient>
                         </TouchableOpacity>
 
@@ -133,6 +133,7 @@ const DashboardScreen = ({ navigation }) => {
                     )}
                 </View>
 
+                <AppFooter />
             </ScrollView>
         </View>
     );
