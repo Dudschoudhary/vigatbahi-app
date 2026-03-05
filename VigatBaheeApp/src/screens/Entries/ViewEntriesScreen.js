@@ -44,12 +44,18 @@ const ViewEntriesScreen = ({ navigation, route }) => {
     const setF = (k) => (v) => setEditForm((f) => ({ ...f, [k]: v }));
     const setAF = (k) => (v) => setAddForm((f) => ({ ...f, [k]: v }));
 
-    // Set the nav header title to the bahee name
+    // Set the nav header title based on bahee type
     useLayoutEffect(() => {
+        const bt = selectedBaheeType || initialBaheeType;
+        const typeInfo = bt ? BAHEE_TYPES.find(t => t.key === bt) : null;
         if (headerName) {
             navigation.setOptions({ title: headerName });
+        } else if (typeInfo) {
+            navigation.setOptions({ title: `${typeInfo.subLabel} देखें` });
+        } else {
+            navigation.setOptions({ title: 'विगत देखें' });
         }
-    }, [navigation, headerName]);
+    }, [navigation, headerName, selectedBaheeType, initialBaheeType]);
 
     const fetchEntries = useCallback(async (customPage, customLimit, customSearch) => {
         try {

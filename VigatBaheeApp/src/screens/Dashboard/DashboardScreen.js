@@ -21,11 +21,19 @@ const DashboardScreen = ({ navigation }) => {
     const fetchData = useCallback(async () => {
         try {
             const res = await baheeDetailsAPI.getAll();
-            // Website backend returns { data: [...] } — flat array of bahee records
+            // DEBUG: Log the raw response to identify data format
+            console.log('🔍 Dashboard API response status:', res.status);
+            console.log('🔍 Dashboard API response.data:', JSON.stringify(res.data).substring(0, 500));
+            console.log('🔍 Dashboard API response.data type:', typeof res.data);
+            console.log('🔍 Dashboard API response.data.data:', res.data?.data);
+            console.log('🔍 Dashboard API response.data keys:', Object.keys(res.data || {}));
+
             const raw = res.data.data || res.data || [];
+            console.log('🔍 Dashboard parsed raw:', JSON.stringify(raw).substring(0, 300));
+            console.log('🔍 Dashboard isArray:', Array.isArray(raw), 'length:', raw?.length);
             setAllBahee(Array.isArray(raw) ? raw : []);
         } catch (err) {
-            console.error('Dashboard fetch error:', err);
+            console.error('Dashboard fetch error:', err?.message, err?.response?.status, err?.response?.data);
         } finally {
             setLoading(false);
             setRefreshing(false);

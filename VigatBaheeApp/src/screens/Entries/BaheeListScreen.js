@@ -16,11 +16,18 @@ const BaheeListScreen = ({ navigation }) => {
     const fetchData = useCallback(async () => {
         try {
             const res = await baheeDetailsAPI.getAll();
+            // DEBUG: Log the raw response
+            console.log('🔍 BaheeList API response status:', res.status);
+            console.log('🔍 BaheeList API response.data:', JSON.stringify(res.data).substring(0, 500));
+            console.log('🔍 BaheeList API response.data keys:', Object.keys(res.data || {}));
+
             const data = res.data.data || res.data || [];
+            console.log('🔍 BaheeList parsed data:', JSON.stringify(data).substring(0, 300));
+            console.log('🔍 BaheeList isArray:', Array.isArray(data), 'length:', data?.length);
             setBaheeList(Array.isArray(data) ? data : []);
         } catch (err) {
-            console.error('BaheeList fetch error:', err);
-            Alert.alert('त्रुटि', 'डेटा लोड नहीं हो सका');
+            console.error('BaheeList fetch error:', err?.message, err?.response?.status, err?.response?.data);
+            Alert.alert('त्रुटि', `डेटा लोड नहीं हो सका: ${err?.response?.status || 'NETWORK'} - ${err?.response?.data?.message || err?.message}`);
         } finally {
             setLoading(false);
             setRefreshing(false);

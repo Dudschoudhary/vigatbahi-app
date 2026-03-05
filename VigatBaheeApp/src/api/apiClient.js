@@ -46,7 +46,7 @@ apiClient.interceptors.response.use(
 );
 
 // ─── Auth API ────────────────────────────────────────────────────────────────
-// Website backend: user.route.js — routes at root level (no /api prefix)
+// Production VPS backend uses root-level routes (no /api prefix)
 export const authAPI = {
     register: (data) => apiClient.post('/register', data),
     login: (data) => apiClient.post('/login', data),
@@ -56,7 +56,7 @@ export const authAPI = {
 };
 
 // ─── Bahee Details API ────────────────────────────────────────────────────────
-// Website backend: baheeRoutes.js — routes at /bahee-details
+// Production VPS backend routes at /bahee-details
 export const baheeDetailsAPI = {
     create: (data) => apiClient.post('/bahee-details', data),
     getAll: () => apiClient.get('/bahee-details'),
@@ -66,7 +66,7 @@ export const baheeDetailsAPI = {
 };
 
 // ─── Bahee Entries API ────────────────────────────────────────────────────────
-// Website backend: baheeRoutes.js — routes at /bahee-entries
+// Production VPS backend routes at /bahee-entries
 export const baheeEntriesAPI = {
     create: (data) => apiClient.post('/bahee-entries', data),
     getAll: (params) => apiClient.get('/bahee-entries', { params }),
@@ -77,7 +77,7 @@ export const baheeEntriesAPI = {
 };
 
 // ─── Personal Bahee API ───────────────────────────────────────────────────────
-// Website backend: personalbahee.route.js — routes at /personalbahee
+// Production VPS backend routes at /personalbahee
 export const personalBaheeAPI = {
     create: (data) => apiClient.post('/personalbahee', data),
     getAll: (params) => apiClient.get('/personalbahee', { params }),
