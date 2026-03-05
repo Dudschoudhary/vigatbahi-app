@@ -24,7 +24,7 @@ const LandingScreen = ({ navigation }) => {
                 <View style={styles.heroCard}>
                     {/* Ganesh Ji */}
                     <View style={styles.ganeshContainer}>
-                        <Image source={require('../../assets/ganesh_colored.png')} style={styles.ganeshImage} />
+                        <Image source={require('../../assets/ganeshji1-B_74GW6b.png')} style={styles.ganeshImage} />
                     </View>
 
                     {/* Titles */}

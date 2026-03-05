@@ -51,17 +51,31 @@ const createEntry = async (req, res) => {
 // @access  Private
 const getAllEntries = async (req, res) => {
     try {
-        const { page = 1, limit = 10, search = '' } = req.query;
+        const { page = 1, limit = 10, search = '', baheeType, headerName } = req.query;
         const skip = (parseInt(page) - 1) * parseInt(limit);
 
-        const query = { user_id: req.user._id };
+        const baseFilter = { user_id: req.user._id };
+        if (baheeType) baseFilter.baheeType = baheeType;
+        if (headerName) baseFilter.headerName = headerName;
+
+        let query;
         if (search) {
-            query.$or = [
-                { name: { $regex: search, $options: 'i' } },
-                { caste: { $regex: search, $options: 'i' } },
-                { fatherName: { $regex: search, $options: 'i' } },
-                { villageName: { $regex: search, $options: 'i' } },
-            ];
+            const escaped = search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            query = {
+                $and: [
+                    baseFilter,
+                    {
+                        $or: [
+                            { name: { $regex: escaped, $options: 'i' } },
+                            { caste: { $regex: escaped, $options: 'i' } },
+                            { fatherName: { $regex: escaped, $options: 'i' } },
+                            { villageName: { $regex: escaped, $options: 'i' } },
+                        ],
+                    },
+                ],
+            };
+        } else {
+            query = baseFilter;
         }
 
         const total = await BaheeEntry.countDocuments(query);
@@ -78,6 +92,7 @@ const getAllEntries = async (req, res) => {
             data: entries,
         });
     } catch (error) {
+        console.error('getAllEntries error:', error);
         res.status(500).json({ success: false, message: 'Error fetching entries' });
     }
 };
@@ -91,19 +106,30 @@ const getEntriesByTypeAndHeader = async (req, res) => {
         const { page = 1, limit = 10, search = '' } = req.query;
         const skip = (parseInt(page) - 1) * parseInt(limit);
 
-        const query = {
+        const baseFilter = {
             user_id: req.user._id,
             baheeType,
             headerName: decodeURIComponent(headerName),
         };
 
+        let query;
         if (search) {
-            query.$or = [
-                { name: { $regex: search, $options: 'i' } },
-                { caste: { $regex: search, $options: 'i' } },
-                { fatherName: { $regex: search, $options: 'i' } },
-                { villageName: { $regex: search, $options: 'i' } },
-            ];
+            const escaped = search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            query = {
+                $and: [
+                    baseFilter,
+                    {
+                        $or: [
+                            { name: { $regex: escaped, $options: 'i' } },
+                            { caste: { $regex: escaped, $options: 'i' } },
+                            { fatherName: { $regex: escaped, $options: 'i' } },
+                            { villageName: { $regex: escaped, $options: 'i' } },
+                        ],
+                    },
+                ],
+            };
+        } else {
+            query = baseFilter;
         }
 
         const total = await BaheeEntry.countDocuments(query);
@@ -120,6 +146,7 @@ const getEntriesByTypeAndHeader = async (req, res) => {
             data: entries,
         });
     } catch (error) {
+        console.error('getEntriesByTypeAndHeader error:', error);
         res.status(500).json({ success: false, message: 'Error fetching entries by type' });
     }
 };

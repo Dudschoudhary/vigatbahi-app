@@ -75,7 +75,7 @@ const AppFooter = () => {
 
 const styles = StyleSheet.create({
     footer: {
-        backgroundColor: '#111827',
+        backgroundColor: '#2563EB',
         paddingHorizontal: SPACING.base,
         paddingVertical: SPACING.xl,
         marginTop: SPACING.xl,
@@ -84,7 +84,7 @@ const styles = StyleSheet.create({
         marginBottom: SPACING.base,
         paddingBottom: SPACING.base,
         borderBottomWidth: 1,
-        borderBottomColor: '#374151',
+        borderBottomColor: 'rgba(96, 165, 250, 0.3)',
     },
     brandName: {
         fontSize: FONT_SIZES.lg,
@@ -95,7 +95,7 @@ const styles = StyleSheet.create({
     },
     companyDesc: {
         fontSize: FONT_SIZES.xs,
-        color: '#9CA3AF',
+        color: '#BFDBFE',
         lineHeight: 18,
     },
     linksRow: {
@@ -106,15 +106,15 @@ const styles = StyleSheet.create({
         marginBottom: SPACING.base,
         paddingBottom: SPACING.base,
         borderBottomWidth: 1,
-        borderBottomColor: '#374151',
+        borderBottomColor: 'rgba(96, 165, 250, 0.3)',
     },
     linkText: {
         fontSize: FONT_SIZES.xs,
-        color: '#D1D5DB',
+        color: '#DBEAFE',
     },
     linkDot: {
         fontSize: FONT_SIZES.xs,
-        color: '#6B7280',
+        color: '#93C5FD',
     },
     contactRow: {
         flexDirection: 'row',
@@ -124,7 +124,7 @@ const styles = StyleSheet.create({
     },
     contactText: {
         fontSize: FONT_SIZES.xs,
-        color: '#9CA3AF',
+        color: '#BFDBFE',
     },
     socialRow: {
         flexDirection: 'row',
@@ -132,7 +132,7 @@ const styles = StyleSheet.create({
         marginBottom: SPACING.base,
         paddingBottom: SPACING.base,
         borderBottomWidth: 1,
-        borderBottomColor: '#374151',
+        borderBottomColor: 'rgba(96, 165, 250, 0.3)',
     },
     socialIcon: {
         fontSize: 22,
@@ -142,7 +142,7 @@ const styles = StyleSheet.create({
     },
     copyrightText: {
         fontSize: FONT_SIZES.xs,
-        color: '#6B7280',
+        color: '#93C5FD',
         textAlign: 'center',
     },
 });

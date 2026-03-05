@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import {
     View,
     TextInput,
@@ -13,6 +13,9 @@ import { COLORS, FONT_SIZES, SPACING, BORDER_RADIUS } from '../utils/theme';
  * HindiInput - A TextInput with toggleable Hindi transliteration
  * When transliteration is ON: English keystrokes → Devanagari
  * When transliteration is OFF: Normal English input
+ *
+ * The component keeps a parallel English "raw" buffer so the
+ * transliteration engine always works on the complete English input.
  */
 const HindiInput = ({
     label,
@@ -29,27 +32,62 @@ const HindiInput = ({
     defaultTransliterate = true,
 }) => {
     const [transliterate, setTransliterate] = useState(defaultTransliterate);
-    const [rawInput, setRawInput] = useState('');
+    // Raw English buffer maintained alongside the Hindi value
+    const rawRef = useRef('');
 
     const handleChange = useCallback(
         (text) => {
             if (transliterate) {
-                // Keep track of raw input, transliterate for display
-                setRawInput(text);
-                const hindi = transliterateToHindi(text);
+                // Detect if user deleted characters by comparing lengths.
+                // If the new text is shorter than the previous value, the user
+                // pressed backspace. In that case we trim the raw buffer
+                // proportionally and re-transliterate.
+                const prevHindi = value || '';
+                if (text.length < prevHindi.length) {
+                    // Backspace detected on Hindi value.
+                    // We can't perfectly reverse-map Hindi→English, so just
+                    // use the new text as-is (it's already in Hindi from the
+                    // TextInput value). The raw buffer gets cleared for safety.
+                    rawRef.current = '';
+                    onChangeText(text);
+                    return;
+                }
+
+                // The user typed new characters. The TextInput value was the
+                // previous Hindi string, so the new characters are appended as
+                // raw English. Extract them.
+                const addedPart = text.slice(prevHindi.length);
+
+                // If the added part contains Devanagari, it was pasted — pass through
+                if (/[\u0900-\u097F]/.test(addedPart)) {
+                    rawRef.current = '';
+                    onChangeText(text);
+                    return;
+                }
+
+                // Append to raw buffer and transliterate the entire raw buffer
+                rawRef.current += addedPart;
+                const hindi = transliterateToHindi(rawRef.current);
                 onChangeText(hindi);
             } else {
-                setRawInput(text);
+                rawRef.current = text;
                 onChangeText(text);
             }
         },
-        [transliterate, onChangeText]
+        [transliterate, onChangeText, value]
     );
 
     const toggleTransliterate = () => {
-        setTransliterate((prev) => !prev);
-        // When switching, keep the existing value as-is
-        setRawInput(value || '');
+        setTransliterate((prev) => {
+            if (!prev) {
+                // Switching to Hindi mode — reset raw buffer
+                rawRef.current = '';
+            } else {
+                // Switching to English mode — raw buffer = current value
+                rawRef.current = value || '';
+            }
+            return !prev;
+        });
     };
 
     return (

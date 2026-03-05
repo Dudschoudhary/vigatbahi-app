@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import {
     View, Text, StyleSheet, TouchableOpacity,
-    RefreshControl, StatusBar, ScrollView,
+    RefreshControl, StatusBar, ScrollView, Image,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import { baheeDetailsAPI } from '../../api/apiClient';
@@ -9,6 +9,8 @@ import { useAuth } from '../../context/AuthContext';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import AppFooter from '../../components/AppFooter';
 import { COLORS, FONT_SIZES, SPACING, BORDER_RADIUS, BAHEE_TYPES, FONTS } from '../../utils/theme';
+
+const ganeshjiImage = require('../../assets/ganeshji1-B_74GW6b.png');
 
 const DashboardScreen = ({ navigation }) => {
     const { user } = useAuth();
@@ -69,6 +71,7 @@ const DashboardScreen = ({ navigation }) => {
                 <View style={styles.dashboardCard}>
                     {/* Welcome Section */}
                     <View style={styles.welcomeSection}>
+                        <Image source={ganeshjiImage} style={styles.ganeshjiImage} resizeMode="contain" />
                         <Text style={styles.dashboardTitle}>🙏 विगत बही</Text>
                         <Text style={styles.dashboardSubtitle}>
                             अपनी बही का प्रबंधन करें — नई बही बनाएं, मौजूदा देखें या प्रविष्टियाँ प्रबंधित करें
@@ -166,6 +169,16 @@ const styles = StyleSheet.create({
         shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.05, shadowRadius: 10, elevation: 4,
     },
     welcomeSection: { alignItems: 'center', marginBottom: SPACING.xl, marginTop: SPACING.sm },
+    ganeshjiImage: {
+        width: 90,
+        height: 90,
+        borderRadius: 45,
+        marginBottom: SPACING.sm,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.15,
+        shadowRadius: 4,
+    },
     dashboardTitle: { fontSize: FONT_SIZES.xl, fontFamily: FONTS.heading, color: '#1E40AF', marginBottom: SPACING.xs },
     dashboardSubtitle: { fontSize: FONT_SIZES.sm, fontFamily: FONTS.regular, color: COLORS.textMuted, textAlign: 'center', paddingHorizontal: SPACING.sm, marginBottom: SPACING.md },
     totalCountText: { fontSize: FONT_SIZES.md, fontFamily: FONTS.heading, color: '#1E40AF' },
