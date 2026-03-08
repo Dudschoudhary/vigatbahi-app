@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, useLayoutEffect } from 'react';
+import React, { useEffect, useState, useCallback, useLayoutEffect, useRef } from 'react';
 import {
     View, Text, FlatList, StyleSheet, TouchableOpacity,
     TextInput, ActivityIndicator, Alert, RefreshControl,
@@ -22,6 +22,7 @@ const ViewEntriesScreen = ({ navigation, route }) => {
     const [limit, setLimit] = useState(10);
     const [total, setTotal] = useState(0);
     const [totalPages, setTotalPages] = useState(1);
+    const [error, setError] = useState(null);
 
     // Bahi type dropdown
     const [selectedBaheeType, setSelectedBaheeType] = useState(initialBaheeType || '');
@@ -44,6 +45,17 @@ const ViewEntriesScreen = ({ navigation, route }) => {
     const setF = (k) => (v) => setEditForm((f) => ({ ...f, [k]: v }));
     const setAF = (k) => (v) => setAddForm((f) => ({ ...f, [k]: v }));
 
+    // ── Refs to track latest state (avoids stale closures) ────────────
+    const searchRef = useRef(search);
+    const pageRef = useRef(page);
+    const limitRef = useRef(limit);
+    const baheeTypeRef = useRef(selectedBaheeType || initialBaheeType || '');
+
+    useEffect(() => { searchRef.current = search; }, [search]);
+    useEffect(() => { pageRef.current = page; }, [page]);
+    useEffect(() => { limitRef.current = limit; }, [limit]);
+    useEffect(() => { baheeTypeRef.current = selectedBaheeType || initialBaheeType || ''; }, [selectedBaheeType, initialBaheeType]);
+
     // Set the nav header title based on bahee type
     useLayoutEffect(() => {
         const bt = selectedBaheeType || initialBaheeType;
@@ -57,16 +69,18 @@ const ViewEntriesScreen = ({ navigation, route }) => {
         }
     }, [navigation, headerName, selectedBaheeType, initialBaheeType]);
 
-    const fetchEntries = useCallback(async (customPage, customLimit, customSearch) => {
+    // ── Core fetch function — always uses explicit params ─────────────
+    const fetchEntries = useCallback(async (overrides = {}) => {
         try {
-            const p = customPage !== undefined ? customPage : page;
-            const l = customLimit !== undefined ? customLimit : limit;
-            const s = customSearch !== undefined ? customSearch : search;
+            setError(null);
+            const p = overrides.page ?? pageRef.current;
+            const l = overrides.limit ?? limitRef.current;
+            const s = overrides.search ?? searchRef.current;
+            const bt = overrides.baheeType ?? baheeTypeRef.current;
 
             const params = { page: p, limit: l, search: s };
 
             let res;
-            const bt = selectedBaheeType || initialBaheeType;
             if (bt && headerName) {
                 res = await baheeEntriesAPI.getByTypeAndHeader(bt, headerName, params);
             } else if (bt) {
@@ -74,35 +88,38 @@ const ViewEntriesScreen = ({ navigation, route }) => {
             } else {
                 res = await baheeEntriesAPI.getAll(params);
             }
-            const allEntries = res.data.data || [];
+            const allEntries = res.data?.data || [];
             setEntries(allEntries);
-            setTotal(res.data.total || allEntries.length);
-            setTotalPages(res.data.pages || Math.ceil(allEntries.length / (l || 10)) || 1);
+            setTotal(res.data?.total || allEntries.length);
+            setTotalPages(res.data?.pages || Math.ceil(allEntries.length / (l || 10)) || 1);
         } catch (err) {
-            console.error('Fetch entries error:', err);
+            const msg = err.response?.data?.message || err.message || 'डेटा लोड नहीं हो सका';
+            console.error('Fetch entries error:', msg);
+            setError(msg);
         } finally {
             setLoading(false);
             setRefreshing(false);
         }
-    }, [initialBaheeType, selectedBaheeType, headerName, limit, page, search]);
+    }, [headerName]);
 
-    useEffect(() => { fetchEntries(); }, []);
+    // ── Initial fetch on mount ────────────────────────────────────────
+    useEffect(() => { fetchEntries(); }, [fetchEntries]);
 
-    // Search debounce
+    // ── Search debounce ───────────────────────────────────────────────
     useEffect(() => {
         const t = setTimeout(() => {
             setPage(1);
-            fetchEntries(1, limit, search);
+            fetchEntries({ page: 1, search });
         }, 400);
         return () => clearTimeout(t);
-    }, [search]);
+    }, [search, fetchEntries]);
 
-    // Reload when bahi type changes
+    // ── Reload when bahi type changes ─────────────────────────────────
     useEffect(() => {
         setPage(1);
         setLoading(true);
-        fetchEntries(1, limit, search);
-    }, [selectedBaheeType]);
+        fetchEntries({ page: 1, baheeType: selectedBaheeType || initialBaheeType || '' });
+    }, [selectedBaheeType, fetchEntries, initialBaheeType]);
 
     const handleDelete = (id) => {
         Alert.alert('प्रविष्टि हटाएं', 'क्या आप वाकई इस प्रविष्टि को हटाना चाहते हैं?', [
@@ -151,7 +168,7 @@ const ViewEntriesScreen = ({ navigation, route }) => {
             fetchEntries();
             Alert.alert('सफल', 'प्रविष्टि अपडेट की गई');
         } catch (err) {
-            Alert.alert('त्रुटि', err.response?.data?.message || 'अपडेट में त्रुटि। यदि यह लॉक है, तो पहले अनलॉक करें।');
+            Alert.alert('त्रुटि', err.response?.data?.message || err.message || 'अपडेट में त्रुटि। यदि यह लॉक है, तो पहले अनलॉक करें।');
         } finally {
             setSaving(false);
         }
@@ -187,7 +204,7 @@ const ViewEntriesScreen = ({ navigation, route }) => {
             fetchEntries();
             Alert.alert('सफल', 'प्रविष्टि सहेजी गई!');
         } catch (err) {
-            Alert.alert('त्रुटि', err.response?.data?.message || 'प्रविष्टि सहेजने में त्रुटि');
+            Alert.alert('त्रुटि', err.response?.data?.message || err.message || 'प्रविष्टि सहेजने में त्रुटि');
         } finally {
             setAddSaving(false);
         }
@@ -241,13 +258,15 @@ const ViewEntriesScreen = ({ navigation, route }) => {
 
     return (
         <View style={styles.container}>
-            {/* Hindi Search Bar */}
+            {/* Search Bar — plain TextInput so native keyboard works without garbling */}
             <View style={styles.searchBar}>
-                <HindiInput
+                <TextInput
                     value={search}
                     onChangeText={setSearch}
                     placeholder="खोजें (नाम, जाति, गाँव...)"
-                    style={{ marginBottom: 0 }}
+                    placeholderTextColor={COLORS.textMuted}
+                    style={styles.searchInput}
+                    clearButtonMode="while-editing"
                 />
             </View>
 
@@ -283,7 +302,7 @@ const ViewEntriesScreen = ({ navigation, route }) => {
                         <TouchableOpacity
                             key={opt}
                             style={[styles.limitBtn, limit === opt && styles.limitBtnActive]}
-                            onPress={() => { setLimit(opt); fetchEntries(1, opt, search); }}>
+                            onPress={() => { setLimit(opt); setPage(1); fetchEntries({ page: 1, limit: opt }); }}>
                             <Text style={[styles.limitBtnText, limit === opt && styles.limitBtnTextActive]}>{opt}</Text>
                         </TouchableOpacity>
                     ))}
@@ -337,15 +356,19 @@ const ViewEntriesScreen = ({ navigation, route }) => {
                     refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchEntries(); }} />}
                     ListEmptyComponent={
                         <View style={styles.empty}>
-                            <Text style={styles.emptyIcon}>📭</Text>
+                            <Text style={styles.emptyIcon}>{error ? '⚠️' : '📭'}</Text>
                             <Text style={styles.emptyText}>
-                                {search ? 'कोई रिकॉर्ड नहीं मिला' : 'कोई प्रविष्टि नहीं मिली'}
+                                {error ? error : search ? 'कोई रिकॉर्ड नहीं मिला' : 'कोई प्रविष्टि नहीं मिली'}
                             </Text>
-                            {headerName && (
+                            {error ? (
+                                <TouchableOpacity onPress={() => { setLoading(true); fetchEntries(); }}>
+                                    <Text style={styles.emptyLink}>🔄 पुनः प्रयास करें</Text>
+                                </TouchableOpacity>
+                            ) : headerName ? (
                                 <TouchableOpacity onPress={() => setAddFormVisible(true)}>
                                     <Text style={styles.emptyLink}>+ नई प्रविष्टि जोड़ें</Text>
                                 </TouchableOpacity>
-                            )}
+                            ) : null}
                         </View>
                     }
                     ListFooterComponent={entries.length > 0 ? renderListFooter : null}
@@ -358,14 +381,14 @@ const ViewEntriesScreen = ({ navigation, route }) => {
                     <TouchableOpacity
                         style={[styles.pageBtn, page === 1 && styles.pageBtnDisabled]}
                         disabled={page === 1}
-                        onPress={() => { setPage(page - 1); fetchEntries(page - 1); }}>
+                        onPress={() => { const newPage = page - 1; setPage(newPage); fetchEntries({ page: newPage }); }}>
                         <Text style={styles.pageBtnText}>‹ पिछला</Text>
                     </TouchableOpacity>
                     <Text style={styles.pageInfo}>{page} / {totalPages}</Text>
                     <TouchableOpacity
                         style={[styles.pageBtn, page === totalPages && styles.pageBtnDisabled]}
                         disabled={page === totalPages}
-                        onPress={() => { setPage(page + 1); fetchEntries(page + 1); }}>
+                        onPress={() => { const newPage = page + 1; setPage(newPage); fetchEntries({ page: newPage }); }}>
                         <Text style={styles.pageBtnText}>अगला ›</Text>
                     </TouchableOpacity>
                 </View>
@@ -468,7 +491,12 @@ const ViewEntriesScreen = ({ navigation, route }) => {
 
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: COLORS.background },
-    searchBar: { backgroundColor: COLORS.white, paddingHorizontal: SPACING.sm, paddingTop: SPACING.sm, borderBottomWidth: 1, borderBottomColor: COLORS.border },
+    searchBar: { backgroundColor: COLORS.white, paddingHorizontal: SPACING.sm, paddingTop: SPACING.sm, paddingBottom: SPACING.xs, borderBottomWidth: 1, borderBottomColor: COLORS.border },
+    searchInput: {
+        borderWidth: 1, borderColor: COLORS.border, borderRadius: BORDER_RADIUS.md,
+        paddingHorizontal: SPACING.base, paddingVertical: SPACING.sm,
+        fontSize: FONT_SIZES.base, color: COLORS.text, backgroundColor: COLORS.white,
+    },
     pickerContainer: {
         paddingHorizontal: SPACING.sm, paddingTop: SPACING.sm, backgroundColor: COLORS.white,
         borderBottomWidth: 1, borderBottomColor: COLORS.border,

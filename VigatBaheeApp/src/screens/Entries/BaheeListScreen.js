@@ -12,22 +12,18 @@ const BaheeListScreen = ({ navigation }) => {
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [selectedBaheeId, setSelectedBaheeId] = useState(null);
+    const [error, setError] = useState(null);
 
     const fetchData = useCallback(async () => {
         try {
+            setError(null);
             const res = await baheeDetailsAPI.getAll();
-            // DEBUG: Log the raw response
-            console.log('🔍 BaheeList API response status:', res.status);
-            console.log('🔍 BaheeList API response.data:', JSON.stringify(res.data).substring(0, 500));
-            console.log('🔍 BaheeList API response.data keys:', Object.keys(res.data || {}));
-
-            const data = res.data.data || res.data || [];
-            console.log('🔍 BaheeList parsed data:', JSON.stringify(data).substring(0, 300));
-            console.log('🔍 BaheeList isArray:', Array.isArray(data), 'length:', data?.length);
+            const data = res.data?.data || res.data || [];
             setBaheeList(Array.isArray(data) ? data : []);
         } catch (err) {
-            console.error('BaheeList fetch error:', err?.message, err?.response?.status, err?.response?.data);
-            Alert.alert('त्रुटि', `डेटा लोड नहीं हो सका: ${err?.response?.status || 'NETWORK'} - ${err?.response?.data?.message || err?.message}`);
+            const msg = err.response?.data?.message || err.message || 'डेटा लोड नहीं हो सका';
+            console.error('BaheeList fetch error:', msg);
+            setError(msg);
         } finally {
             setLoading(false);
             setRefreshing(false);
@@ -190,6 +186,16 @@ const BaheeListScreen = ({ navigation }) => {
                     refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchData(); }} />}
                     ListFooterComponent={<AppFooter />}
                 />
+            ) : error ? (
+                <View style={styles.empty}>
+                    <Text style={styles.emptyIcon}>⚠️</Text>
+                    <Text style={styles.emptyText}>{error}</Text>
+                    <TouchableOpacity
+                        style={styles.emptyBtn}
+                        onPress={() => { setLoading(true); fetchData(); }}>
+                        <Text style={styles.emptyBtnText}>🔄 पुनः प्रयास करें</Text>
+                    </TouchableOpacity>
+                </View>
             ) : (
                 <View style={styles.empty}>
                     <Text style={styles.emptyIcon}>📭</Text>

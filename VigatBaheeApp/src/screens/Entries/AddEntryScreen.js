@@ -70,7 +70,7 @@ const AddEntryScreen = ({ navigation, route }) => {
             setHeaderExists(true);
             Alert.alert('सफल', `"${headerName}" विगत सहेजी गई!`);
         } catch (err) {
-            Alert.alert('त्रुटि', err.response?.data?.message || 'विगत सहेजने में त्रुटि');
+            Alert.alert('त्रुटि', err.response?.data?.message || err.message || 'विगत सहेजने में त्रुटि');
         } finally {
             setSaveHeaderLoading(false);
         }
@@ -98,7 +98,7 @@ const AddEntryScreen = ({ navigation, route }) => {
                 { text: 'प्रविष्टियाँ देखें', onPress: () => navigation.navigate('ViewEntries', { baheeType: selectedType, headerName, baheeTypeName: BAHEE_TYPES.find(t => t.key === selectedType)?.label }) },
             ]);
         } catch (err) {
-            Alert.alert('त्रुटि', err.response?.data?.message || 'प्रविष्टि सहेजने में त्रुटि');
+            Alert.alert('त्रुटि', err.response?.data?.message || err.message || 'प्रविष्टि सहेजने में त्रुटि');
         } finally {
             setSaveEntryLoading(false);
         }

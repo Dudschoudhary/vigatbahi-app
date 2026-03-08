@@ -28,7 +28,7 @@ const ResetPasswordScreen = ({ navigation, route }) => {
             await authAPI.resetPassword({ token, newPassword: password });
             setDone(true);
         } catch (err) {
-            Alert.alert('त्रुटि', err.response?.data?.message || 'रीसेट में त्रुटि हुई');
+            Alert.alert('त्रुटि', err.response?.data?.message || err.message || 'रीसेट में त्रुटि हुई');
         } finally {
             setLoading(false);
         }

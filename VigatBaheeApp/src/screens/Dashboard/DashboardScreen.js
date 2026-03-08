@@ -17,23 +17,18 @@ const DashboardScreen = ({ navigation }) => {
     const [allBahee, setAllBahee] = useState([]);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
+    const [error, setError] = useState(null);
 
     const fetchData = useCallback(async () => {
         try {
+            setError(null);
             const res = await baheeDetailsAPI.getAll();
-            // DEBUG: Log the raw response to identify data format
-            console.log('🔍 Dashboard API response status:', res.status);
-            console.log('🔍 Dashboard API response.data:', JSON.stringify(res.data).substring(0, 500));
-            console.log('🔍 Dashboard API response.data type:', typeof res.data);
-            console.log('🔍 Dashboard API response.data.data:', res.data?.data);
-            console.log('🔍 Dashboard API response.data keys:', Object.keys(res.data || {}));
-
-            const raw = res.data.data || res.data || [];
-            console.log('🔍 Dashboard parsed raw:', JSON.stringify(raw).substring(0, 300));
-            console.log('🔍 Dashboard isArray:', Array.isArray(raw), 'length:', raw?.length);
+            const raw = res.data?.data || res.data || [];
             setAllBahee(Array.isArray(raw) ? raw : []);
         } catch (err) {
-            console.error('Dashboard fetch error:', err?.message, err?.response?.status, err?.response?.data);
+            const msg = err.response?.data?.message || err.message || 'डेटा लोड नहीं हो सका';
+            console.error('Dashboard fetch error:', msg);
+            setError(msg);
         } finally {
             setLoading(false);
             setRefreshing(false);
@@ -54,21 +49,45 @@ const DashboardScreen = ({ navigation }) => {
 
     if (loading) return <LoadingSpinner />;
 
+    if (error && allBahee.length === 0) {
+        return (
+            <View style={styles.container}>
+                <StatusBar barStyle="dark-content" backgroundColor={COLORS.background} />
+                <View style={styles.header}>
+                    <TouchableOpacity style={styles.menuBtn} onPress={() => navigation.openDrawer()}>
+                        <Text style={styles.menuIcon}>☰</Text>
+                    </TouchableOpacity>
+                    <View style={{ alignItems: 'flex-end' }}>
+                        <Text style={styles.greeting}>नमस्ते, 🙏</Text>
+                        <Text style={styles.userName}>{user?.fullname || 'उपयोगकर्ता'}</Text>
+                    </View>
+                </View>
+                <View style={styles.errorContainer}>
+                    <Text style={styles.errorIcon}>⚠️</Text>
+                    <Text style={styles.errorText}>{error}</Text>
+                    <TouchableOpacity style={styles.retryBtn} onPress={() => { setLoading(true); fetchData(); }}>
+                        <Text style={styles.retryBtnText}>🔄 पुनः प्रयास करें</Text>
+                    </TouchableOpacity>
+                </View>
+            </View>
+        );
+    }
+
     return (
         <View style={styles.container}>
             <StatusBar barStyle="dark-content" backgroundColor={COLORS.background} />
 
             {/* Header */}
             <View style={styles.header}>
-                <View>
-                    <Text style={styles.greeting}>नमस्ते, 🙏</Text>
-                    <Text style={styles.userName}>{user?.fullname || 'उपयोगकर्ता'}</Text>
-                </View>
                 <TouchableOpacity
                     style={styles.menuBtn}
                     onPress={() => navigation.openDrawer()}>
                     <Text style={styles.menuIcon}>☰</Text>
                 </TouchableOpacity>
+                <View style={{ alignItems: 'flex-end' }}>
+                    <Text style={styles.greeting}>नमस्ते, 🙏</Text>
+                    <Text style={styles.userName}>{user?.fullname || 'उपयोगकर्ता'}</Text>
+                </View>
             </View>
 
             <ScrollView
@@ -216,6 +235,11 @@ const styles = StyleSheet.create({
     emptyContainer: { alignItems: 'center', padding: SPACING.xl, backgroundColor: COLORS.background, borderRadius: BORDER_RADIUS.lg, borderWidth: 1, borderColor: COLORS.border, borderStyle: 'dashed', marginTop: SPACING.md },
     emptyTitle: { fontSize: FONT_SIZES.md, fontFamily: FONTS.heading, color: '#1D4ED8', textAlign: 'center', marginBottom: SPACING.sm },
     emptyDesc: { fontSize: FONT_SIZES.sm, fontFamily: FONTS.regular, color: COLORS.textMuted, textAlign: 'center', lineHeight: 22 },
+    errorContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: SPACING.xl, gap: SPACING.base },
+    errorIcon: { fontSize: 48 },
+    errorText: { fontSize: FONT_SIZES.base, color: COLORS.error, textAlign: 'center', fontFamily: FONTS.regular, lineHeight: 22 },
+    retryBtn: { backgroundColor: COLORS.primary, paddingHorizontal: SPACING.xl, paddingVertical: SPACING.sm, borderRadius: BORDER_RADIUS.md, marginTop: SPACING.sm },
+    retryBtnText: { color: COLORS.white, fontSize: FONT_SIZES.md, fontFamily: FONTS.bold },
 });
 
 export default DashboardScreen;

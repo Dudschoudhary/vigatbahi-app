@@ -52,7 +52,7 @@ const ChangePasswordScreen = ({ navigation }) => {
                 { text: 'ठीक है', onPress: logout },
             ]);
         } catch (err) {
-            Alert.alert('त्रुटि', err.response?.data?.message || 'पासवर्ड बदलने में त्रुटि');
+            Alert.alert('त्रुटि', err.response?.data?.message || err.message || 'पासवर्ड बदलने में त्रुटि');
         } finally {
             setLoading(false);
         }

@@ -1,7 +1,7 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import {
     View, Text, FlatList, StyleSheet, TouchableOpacity,
-    Alert, ActivityIndicator, RefreshControl, Modal, ScrollView, Switch,
+    Alert, ActivityIndicator, RefreshControl, Modal, ScrollView, Switch, TextInput,
 } from 'react-native';
 import { personalBaheeAPI } from '../../api/apiClient';
 import HindiInput from '../../components/HindiInput';
@@ -16,6 +16,7 @@ const PersonalBaheeScreen = ({ navigation }) => {
     const [search, setSearch] = useState('');
     const [total, setTotal] = useState(0);
     const [filterType, setFilterType] = useState('');
+    const [error, setError] = useState(null);
 
     // Add Form
     const [showForm, setShowForm] = useState(false);
@@ -35,24 +36,33 @@ const PersonalBaheeScreen = ({ navigation }) => {
     const setF = (k) => (v) => setForm((f) => ({ ...f, [k]: v }));
     const setEF = (k) => (v) => setEditForm((f) => ({ ...f, [k]: v }));
 
-    const fetchEntries = useCallback(async (customSearch) => {
+    // ── Ref to track latest search (avoids stale closures) ────────────
+    const searchRef = useRef(search);
+    useEffect(() => { searchRef.current = search; }, [search]);
+
+    const fetchEntries = useCallback(async (overrides = {}) => {
         try {
-            const s = customSearch !== undefined ? customSearch : search;
+            setError(null);
+            const s = overrides.search ?? searchRef.current;
             const res = await personalBaheeAPI.getAll({ search: s });
-            const allData = res.data.data || [];
+            const allData = res.data?.data || [];
             setEntries(allData);
-            setTotal(res.data.total || allData.length);
-        } catch { } finally {
+            setTotal(res.data?.total || allData.length);
+        } catch (err) {
+            const msg = err.response?.data?.message || err.message || 'डेटा लोड नहीं हो सका';
+            console.error('PersonalBahee fetch error:', msg);
+            setError(msg);
+        } finally {
             setLoading(false);
             setRefreshing(false);
         }
-    }, [search]);
+    }, []);
 
-    useEffect(() => { fetchEntries(); }, []);
+    // ── Initial fetch + search debounce (single useEffect) ────────────
     useEffect(() => {
-        const t = setTimeout(() => fetchEntries(search), 400);
+        const t = setTimeout(() => fetchEntries({ search }), search ? 400 : 0);
         return () => clearTimeout(t);
-    }, [search]);
+    }, [search, fetchEntries]);
 
     // Filtered entries
     const filteredEntries = filterType
@@ -91,7 +101,7 @@ const PersonalBaheeScreen = ({ navigation }) => {
             fetchEntries();
             Alert.alert('सफल', 'व्यक्तिगत विगत सहेजी गई');
         } catch (err) {
-            Alert.alert('त्रुटि', err.response?.data?.message || 'सहेजने में त्रुटि');
+            Alert.alert('त्रुटि', err.response?.data?.message || err.message || 'सहेजने में त्रुटि');
         } finally {
             setSaving(false);
         }
@@ -145,7 +155,7 @@ const PersonalBaheeScreen = ({ navigation }) => {
             fetchEntries();
             Alert.alert('सफल', 'प्रविष्टि अपडेट की गई');
         } catch (err) {
-            Alert.alert('त्रुटि', err.response?.data?.message || 'अपडेट में त्रुटि');
+            Alert.alert('त्रुटि', err.response?.data?.message || err.message || 'अपडेट में त्रुटि');
         } finally {
             setEditSaving(false);
         }
@@ -252,13 +262,15 @@ const PersonalBaheeScreen = ({ navigation }) => {
                 />
             </View>
 
-            {/* Hindi Search */}
+            {/* Search — plain TextInput so native keyboard (Hindi/English) works correctly */}
             <View style={styles.searchBar}>
-                <HindiInput
+                <TextInput
                     value={search}
                     onChangeText={setSearch}
                     placeholder="खोजें (नाम, जाति, गाँव...)"
-                    style={{ marginBottom: 0 }}
+                    placeholderTextColor={COLORS.textMuted}
+                    style={styles.searchInput}
+                    clearButtonMode="while-editing"
                 />
             </View>
 
@@ -290,13 +302,19 @@ const PersonalBaheeScreen = ({ navigation }) => {
                     refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchEntries(); }} />}
                     ListEmptyComponent={
                         <View style={styles.empty}>
-                            <Text style={{ fontSize: 48 }}>👤</Text>
+                            <Text style={{ fontSize: 48 }}>{error ? '⚠️' : '👤'}</Text>
                             <Text style={styles.emptyText}>
-                                {search ? 'कोई रिकॉर्ड नहीं मिला' : 'कोई व्यक्तिगत विगत नहीं'}
+                                {error ? error : search ? 'कोई रिकॉर्ड नहीं मिला' : 'कोई व्यक्तिगत विगत नहीं'}
                             </Text>
-                            <TouchableOpacity onPress={() => setShowForm(true)}>
-                                <Text style={styles.emptyLink}>+ पहली विगत जोड़ें</Text>
-                            </TouchableOpacity>
+                            {error ? (
+                                <TouchableOpacity onPress={() => { setLoading(true); fetchEntries(); }}>
+                                    <Text style={styles.emptyLink}>🔄 पुनः प्रयास करें</Text>
+                                </TouchableOpacity>
+                            ) : (
+                                <TouchableOpacity onPress={() => setShowForm(true)}>
+                                    <Text style={styles.emptyLink}>+ पहली विगत जोड़ें</Text>
+                                </TouchableOpacity>
+                            )}
                         </View>
                     }
                     ListFooterComponent={displayEntries.length > 0 ? <AppFooter /> : null}
@@ -412,7 +430,12 @@ const styles = StyleSheet.create({
     saveBtn: { backgroundColor: COLORS.primary, borderRadius: BORDER_RADIUS.md, paddingVertical: 13, alignItems: 'center', marginTop: SPACING.sm },
     saveBtnText: { color: COLORS.white, fontSize: FONT_SIZES.md, fontWeight: '800' },
     filterRow: { paddingHorizontal: SPACING.sm, paddingTop: SPACING.sm, backgroundColor: COLORS.white, borderBottomWidth: 1, borderBottomColor: COLORS.border },
-    searchBar: { backgroundColor: COLORS.white, paddingHorizontal: SPACING.sm, paddingTop: SPACING.xs, borderBottomWidth: 1, borderBottomColor: COLORS.border },
+    searchBar: { backgroundColor: COLORS.white, paddingHorizontal: SPACING.sm, paddingTop: SPACING.xs, paddingBottom: SPACING.xs, borderBottomWidth: 1, borderBottomColor: COLORS.border },
+    searchInput: {
+        borderWidth: 1, borderColor: COLORS.border, borderRadius: BORDER_RADIUS.md,
+        paddingHorizontal: SPACING.base, paddingVertical: SPACING.sm,
+        fontSize: FONT_SIZES.base, color: COLORS.text, backgroundColor: COLORS.white,
+    },
     statsRow: {
         flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
         paddingHorizontal: SPACING.sm, paddingVertical: SPACING.xs, backgroundColor: COLORS.white,

@@ -1,4 +1,4 @@
-import React, { useCallback, useRef } from 'react';
+import React, { useRef } from 'react';
 import {
     View,
     TextInput,
@@ -9,8 +9,17 @@ import { transliterateToHindi } from '../utils/transliteration';
 import { COLORS, FONT_SIZES, SPACING, BORDER_RADIUS } from '../utils/theme';
 
 /**
- * HindiInput - A TextInput with always-on Hindi transliteration.
- * English keystrokes are automatically converted to Devanagari.
+ * HindiInput – Smart TextInput with optional transliteration.
+ *
+ * Modes:
+ *   defaultTransliterate=true  → English keystrokes are converted to Devanagari in real-time.
+ *   defaultTransliterate=false → Plain pass-through (used for numbers, dates, etc.)
+ *
+ * Key insight: We track a raw English buffer (`rawRef`) that maps 1:1 to the current
+ * Devanagari output. On every change:
+ *   - If the user DELETED (text shorter) → clear rawRef, pass Hindi string as-is.
+ *   - If new chars are Devanagari (native Hindi keyboard) → clear rawRef, pass through.
+ *   - Otherwise → append new Latin chars to rawRef and transliterate the whole buffer.
  */
 const HindiInput = ({
     label,
@@ -24,38 +33,54 @@ const HindiInput = ({
     error,
     style,
     inputStyle,
+    defaultTransliterate = true,
 }) => {
-    // Raw English buffer maintained alongside the Hindi value
     const rawRef = useRef('');
 
-    const handleChange = useCallback(
-        (text) => {
-            const prevHindi = value || '';
+    const handleChange = (text) => {
+        // ── No transliteration mode (numbers, dates) ──────────────────
+        if (!defaultTransliterate) {
+            onChangeText(text);
+            return;
+        }
 
-            // Backspace / deletion detected
-            if (text.length < prevHindi.length) {
-                rawRef.current = '';
-                onChangeText(text);
-                return;
-            }
+        const prev = value || '';
 
-            // Extract newly typed characters
-            const addedPart = text.slice(prevHindi.length);
+        // ── Deletion: user pressed backspace ──────────────────────────
+        if (text.length < prev.length) {
+            // Reset raw buffer completely on deletion
+            rawRef.current = '';
+            onChangeText(text);
+            return;
+        }
 
-            // If pasted Devanagari text, pass through
-            if (/[\u0900-\u097F]/.test(addedPart)) {
-                rawRef.current = '';
-                onChangeText(text);
-                return;
-            }
+        // ── Get the newly added characters ────────────────────────────
+        // Use the prev Hindi value as baseline to find new additions
+        const newChars = text.slice(prev.length);
 
-            // Append to raw buffer and transliterate
-            rawRef.current += addedPart;
-            const hindi = transliterateToHindi(rawRef.current);
-            onChangeText(hindi);
-        },
-        [onChangeText, value]
-    );
+        // ── Native Hindi keyboard: Devanagari chars come in directly ──
+        if (/[\u0900-\u097F]/.test(newChars)) {
+            rawRef.current = '';   // reset – can't reverse-map Devanagari to raw
+            onChangeText(text);
+            return;
+        }
+
+        // ── No new characters (IME preview/composition) ───────────────
+        if (newChars.length === 0) {
+            onChangeText(text);
+            return;
+        }
+
+        // ── English keystrokes → transliterate full raw buffer ────────
+        rawRef.current += newChars;
+        const hindi = transliterateToHindi(rawRef.current);
+        onChangeText(hindi);
+    };
+
+    // Reset raw buffer when parent clears the value (form reset)
+    if (!value && rawRef.current) {
+        rawRef.current = '';
+    }
 
     return (
         <View style={[styles.container, style]}>

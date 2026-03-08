@@ -70,7 +70,7 @@ const RegisterScreen = ({ navigation }) => {
                 { text: 'लॉगिन करें', onPress: () => navigation.navigate('Login') },
             ]);
         } catch (err) {
-            Alert.alert('त्रुटि', err.response?.data?.message || 'रजिस्ट्रेशन में त्रुटि');
+            Alert.alert('त्रुटि', err.response?.data?.message || err.message || 'रजिस्ट्रेशन में त्रुटि');
         } finally {
             setLoading(false);
         }

@@ -18,9 +18,12 @@ export const AuthProvider = ({ children }) => {
                 if (storedToken && storedUser) {
                     setToken(storedToken);
                     setUser(JSON.parse(storedUser));
+                    console.log('🟢 Session restored from storage');
                 }
             } catch (error) {
                 console.error('Session restore error:', error);
+                // Clear corrupted storage
+                await AsyncStorage.multiRemove(['vb_token', 'vb_user']).catch(() => { });
             } finally {
                 setLoading(false);
             }
@@ -30,12 +33,33 @@ export const AuthProvider = ({ children }) => {
 
     const login = async (email, password) => {
         const response = await authAPI.login({ email, password });
-        const { token: newToken, user: userData } = response.data;
+        const data = response.data;
+
+        console.log('🔍 Login response keys:', Object.keys(data || {}));
+
+        // Handle different backend response shapes:
+        // Shape 1: { token, user }
+        // Shape 2: { data: { token, user } }
+        // Shape 3: { token, data: { ...userData } }
+        // Shape 4: { accessToken, user }
+        const newToken = data?.token || data?.accessToken || data?.data?.token || data?.data?.accessToken;
+        const userData = data?.user || data?.data?.user || data?.data;
+
+        if (!newToken) {
+            console.error('🔴 Login response missing token. Full response:', JSON.stringify(data).substring(0, 500));
+            throw new Error('लॉगिन सफल लेकिन टोकन नहीं मिला। कृपया पुनः प्रयास करें।');
+        }
+
+        // Ensure userData is an object (not a token string)
+        const finalUser = (userData && typeof userData === 'object') ? userData : { email };
+
         await AsyncStorage.setItem('vb_token', newToken);
-        await AsyncStorage.setItem('vb_user', JSON.stringify(userData));
+        await AsyncStorage.setItem('vb_user', JSON.stringify(finalUser));
         setToken(newToken);
-        setUser(userData);
-        return response.data;
+        setUser(finalUser);
+
+        console.log('🟢 Login successful for:', finalUser.fullname || finalUser.email || email);
+        return data;
     };
 
     const register = async (userData) => {
@@ -46,6 +70,7 @@ export const AuthProvider = ({ children }) => {
     };
 
     const logout = async () => {
+        console.log('🔑 Logging out...');
         await AsyncStorage.multiRemove(['vb_token', 'vb_user']);
         setToken(null);
         setUser(null);

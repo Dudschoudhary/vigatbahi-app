@@ -29,7 +29,20 @@ const LoginScreen = ({ navigation }) => {
         try {
             await login(email.trim().toLowerCase(), password);
         } catch (err) {
-            const msg = err.response?.data?.message || 'लॉगिन में त्रुटि हुई';
+            console.log('🔴 Login error details:', JSON.stringify({
+                hasResponse: !!err.response,
+                status: err.response?.status,
+                dataType: typeof err.response?.data,
+                dataMessage: err.response?.data?.message,
+                errMessage: err.message,
+            }));
+            // Check all possible error message locations:
+            // 1. Normalized by interceptor: err.response.data.message
+            // 2. Plain Error thrown by AuthContext: err.message
+            // 3. Network error message set by interceptor
+            const msg = err.response?.data?.message
+                || err.message
+                || 'लॉगिन में त्रुटि हुई। कृपया पुनः प्रयास करें।';
             Alert.alert('त्रुटि', msg);
         } finally {
             setLoading(false);
